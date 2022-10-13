@@ -1,0 +1,9 @@
+__pycache__
+*.pyc
+*.m2ts
+*.wav
+*.flac
+*.egg-info
+*.zip
+data
+exp
