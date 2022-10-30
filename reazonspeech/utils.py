@@ -51,6 +51,8 @@ def save_as_zip(utterances, path, format="flac"):
                 "audio_filepath": name,
                 "text": utt.text,
                 "duration": utt.duration,
-                "score": utt.score
+                "score": utt.score,
+                "asr": utt.asr,
+                "cer": utt.cer
             }, ensure_ascii=False))
         zipf.writestr("dataset.json", "\n".join(dataset).encode())

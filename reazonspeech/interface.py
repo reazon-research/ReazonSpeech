@@ -17,3 +17,5 @@ class Utterance:
     duration: float
     text: str
     score: float
+    asr: str = None
+    cer: float = None
