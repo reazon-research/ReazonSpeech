@@ -51,7 +51,7 @@ def save_as_zip(utterances, path, format="flac"):
                 "audio_filepath": name,
                 "text": utt.text,
                 "duration": utt.duration,
-                "score": utt.score,
+                "ctc": utt.ctc,
                 "asr": utt.asr,
                 "cer": utt.cer
             }, ensure_ascii=False))

@@ -16,6 +16,6 @@ class Utterance:
     samplerate: int
     duration: float
     text: str
-    score: float
+    ctc: float
     asr: str = None
     cer: float = None

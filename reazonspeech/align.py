@@ -34,7 +34,7 @@ def _align(buffer, samplerate, caption, ctc_segmentation):
                          samplerate=samplerate,
                          duration=duration,
                          text=caption.text,
-                         score=score)
+                         ctc=score)
     return None
 
 def get_utterances(path, ctc_segmentation, speech2text=None):
