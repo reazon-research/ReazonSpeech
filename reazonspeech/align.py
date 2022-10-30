@@ -2,7 +2,7 @@ from .utils import load_audio
 from .caption import get_captions
 from .sentence import build_sentences
 from .interface import Utterance
-from .text import cer
+from .text import cer, normalize
 
 __all__ = "get_utterances",
 
@@ -20,7 +20,7 @@ def _align(buffer, samplerate, caption, ctc_segmentation):
                     caption.end_seconds + _MARGIN[1])
 
     try:
-        aligned = ctc_segmentation(source, caption.text)
+        aligned = ctc_segmentation(source, normalize(caption.text))
     except (IndexError, ValueError):
         return None
 
