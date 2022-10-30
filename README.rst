@@ -59,49 +59,30 @@ This should make the caption data more suitable to ASR tasks.
     Caption(start_seconds=21.3, end_seconds=25.1, text='正午のニュースです。')
     Caption(start_seconds=30.3, end_seconds=35.1, text='本日十時に北海道に陸上機が到着しました。')
 
-Create your audio corpus
-------------------------
+Build audio corpus
+------------------
 
-This sections shows the full usage of ReazonSpeech.
+First, prepare ffmpeg and ESPNet2 model::
 
-First, prepare your audio data and ESPNet2 model::
-
-    # Extract 16khz mono audio stream from MPEG-TS
-    $ ffmpeg -i sample.m2ts -ar 16000 -af "pan=mono|c0=FR" sample.wav
-
-    # Create a symbolic link to ESPNet2 model
+    $ sudo apt install ffmpeg
     $ ln -s /path/to/my-espnet-model/exp
 
-Process the data using the following script:
+You can create an audio corpus from a M2TS file very easily:
 
 .. code-block:: python
 
-   import soundfile
    from espnet2.bin.asr_align import CTCSegmentation
-   from reazonspeech import *
-
-   # Parse captions from M2TS file
-   with open("sample.m2ts", "rb") as fp:
-       captions = read_captions(fp)
-
-   # Format captions into sentences
-   captions = build_sentences(captions)
+   import reazonspeech as rs
 
    # Load audio and ASR model
-   buffer, samplerate = soundfile.read("sample.wav")
    ctc_segmentation = CTCSegmentation(
        asr_train_config="exp/asr_train/config.yaml",
        asr_model_file="exp/asr_train/valid.acc.best.pth",
        kaldi_style_text=False,
-       fs=samplerate,
+       fs=16000,
    )
 
-   # Align audio to captions
-   utterances = align_audio(buffer, samplerate, captions, ctc_segmentation)
+   # Extract audio and transcriptions
+   utterances = rs.get_utterances("test.m2ts", ctc_segmentation)
 
-   # Save as a ZIP archive
-   save_as_zip(utterances, path="corpus.zip", format="flac")
-
-Once done, an archived named "corpus.zip" will be created. It contains
-(1) a transcription file (dataset.json) and (2) corresponding audio
-files (e.g. "0001.flac").
+   rs.save_as_zip(utterances, path="corpus.zip")
