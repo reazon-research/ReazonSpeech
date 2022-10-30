@@ -15,6 +15,8 @@ class Utterance:
     buffer: list
     samplerate: int
     duration: float
+    start_seconds: float
+    end_seconds: float
     text: str
     ctc: float
     asr: str = None
