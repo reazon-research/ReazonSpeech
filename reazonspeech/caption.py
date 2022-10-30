@@ -33,7 +33,7 @@ from .encoding import decode_cprofile
 from .interface import Caption
 from dataclasses import dataclass, field
 
-__all__ = "read_captions",
+__all__ = "get_captions",
 
 # ---------
 # Constants
@@ -238,21 +238,7 @@ class _State:
                 ret.append(Caption(start, end, cur[1]))
         return ret
 
-def read_captions(fp):
-    """Read caption from M2TS stream file.
-
-    This scans MPEG transport stream to extracts caption packets.
-
-    Example:
-        with open("sample.m2ts") as fp:
-            captions = m2ts_captions(fp)
-
-    Args:
-        fp (file): The source M2TS file to read from.
-
-    Returns:
-        A list of `Caption` instances.
-    """
+def _captions(fp):
     state = _State()
 
     while True:
@@ -287,3 +273,17 @@ def read_captions(fp):
                         pts = state.clock_now
                     state.captions.append((pts, text))
     return state.done()
+
+def get_captions(path):
+    """Read caption from M2TS stream file.
+
+    This scans MPEG transport stream to extracts caption packets.
+
+    Args:
+        path (str): Path to a M2TS file.
+
+    Returns:
+        A list of `Caption` instances.
+    """
+    with open(path, 'rb') as fp:
+        return _captions(fp)

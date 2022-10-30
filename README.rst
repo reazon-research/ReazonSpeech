@@ -23,12 +23,9 @@ Here is the most basic usage of ReazonSpeech:
 
 .. code-block:: python
 
-   from reazonspeech import *
+   import reazonspeech as rs
 
-   with open("sample.m2ts", "rb") as fp:
-       captions = read_captions(fp)
-       for caption in captions:
-            print(caption)
+   captions = rs.get_captions("test.m2ts")
 
 Given broadcast data, read_captions() parses and extracts caption data
 from the stream.
@@ -52,7 +49,7 @@ sentence boundaries.
 
 .. code-block:: python
 
-   captions = build_sentences(captions)
+   captions = rs.build_sentences(captions)
 
 This should make the caption data more suitable to ASR tasks.
 
