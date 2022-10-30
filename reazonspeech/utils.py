@@ -1,5 +1,7 @@
 import io
 import json
+import tempfile
+import ffmpeg
 import soundfile
 import zipfile
 
@@ -9,6 +11,24 @@ def _encode(utt, format):
     bio = io.BytesIO()
     soundfile.write(bio, utt.buffer, utt.samplerate, format=format)
     return bytes(bio.getbuffer())
+
+def load_audio(path, samplerate):
+    """Read audio wave data from M2TS file
+
+    Args:
+        path (str): M2TS file to read from.
+        samplerate (int): The samplerate to use
+
+    Returns:
+        The wave data in the format of np.array.
+    """
+    with tempfile.NamedTemporaryFile() as fw:
+        (
+            ffmpeg.input(path)
+                  .output(fw.name, format='wav', ar=samplerate, af="pan=mono|c0=FR")
+                  .run(quiet=True, overwrite_output=True)
+        )
+        return soundfile.read(fw.name)[0]
 
 def save_as_zip(utterances, path, format="flac"):
     """Create a ZIP archive of audio corpus
