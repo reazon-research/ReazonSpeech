@@ -21,7 +21,7 @@ def _align(buffer, samplerate, caption, ctc_segmentation):
 
     try:
         aligned = ctc_segmentation(source, normalize(caption.text))
-    except (IndexError, ValueError):
+    except (IndexError, ValueError, RuntimeError):
         return None
 
     if aligned.segments:
@@ -29,6 +29,7 @@ def _align(buffer, samplerate, caption, ctc_segmentation):
         start -= _PADDING[0]
         end += _PADDING[1]
         duration = (end - start)
+        del aligned
 
         return Utterance(_slice(source, samplerate, start, end),
                          samplerate=samplerate,
