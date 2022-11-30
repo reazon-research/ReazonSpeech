@@ -36,6 +36,8 @@ def decode_cprofile(buf):
                 text += bytes([buf[0], buf[1]]).decode("euc-jp")
             except UnicodeDecodeError:
                 text += _gaiji(buf)
+            except IndexError:
+                break
             buf = buf[2:]
         elif 0x80 < buf[0] and buf[0] < 0x87:
             buf = buf[1:]
