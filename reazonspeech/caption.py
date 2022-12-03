@@ -268,7 +268,10 @@ def _captions(fp):
                     state.caption_pid = _parse_pmt(payload[1:])
             elif state.caption_pid == header["PID"]:
                 if header["PUSI"]:
-                    pts, text = _parse_caption(payload)
+                    try:
+                        pts, text = _parse_caption(payload)
+                    except IndexError:
+                        continue
                     if pts is None:
                         pts = state.clock_now
                     state.captions.append((pts, text))
