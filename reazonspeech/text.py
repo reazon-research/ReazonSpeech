@@ -1,14 +1,13 @@
+from . import data
+from importlib.resources import open_text
+
 __all__ = "cer", "normalize"
 
 #
 # Constants
 
-_SPECIALS = {ord(c): "" for c in (
-    "×", "Δ", "α", "А", "‐", "┐", "△", "◆", "☆", "☎", "＊",  "／",
-    "『", "』", "「", "」", "。", "、", ",", ",", "，", "！", "？", "!", "?",
-    "▲", "○", "●", " ", "[", "]", "/", "”", "〈", "〉", "《", "》", "♪", "＃",
-    "（", "）", "．", "：", "＝", "＠", "［", "］", "｢", "｣", "･", "Ⅰ", "Ⅱ",
-    "−", "≪", "①", "②", "③", "★", "♥", "〇", "’", "“", "‼", "⁉")}
+with open_text(data, 'symbol.txt') as fp:
+    _SPECIALS = {ord(c.rstrip("\n")): "" for c in fp}
 
 _HAN2ZEN = str.maketrans(
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",

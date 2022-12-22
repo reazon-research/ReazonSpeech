@@ -5,5 +5,3 @@ __pycache__
 *.flac
 *.egg-info
 *.zip
-data
-exp
