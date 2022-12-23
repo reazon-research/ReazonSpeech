@@ -10,8 +10,7 @@ Installation
 
 Use ``pip`` to install::
 
-    $ git clone https://github.com/reazon-research/reazonspeech
-    $ pip install reazonspeech
+    $ pip install git+https://github.com/reazon-research/reazonspeech
 
 QuickStart
 ==========
