@@ -104,3 +104,8 @@ LICENSE
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
+
+
+.. image:: https://badges.gitter.im/ReazonSpeech/community.svg
+   :alt: Join the chat at https://gitter.im/ReazonSpeech/community
+   :target: https://gitter.im/ReazonSpeech/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
