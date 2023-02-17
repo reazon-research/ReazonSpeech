@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-__all__ = "Caption", "Utterance"
+__all__ = "Caption", "Utterance", "TranscribeConfig"
 
 @dataclass
 class Caption:
@@ -21,3 +21,11 @@ class Utterance:
     ctc: float
     asr: str = None
     cer: float = None
+
+@dataclass
+class TranscribeConfig:
+    """Parameters for transcribe()"""
+    samplerate: int = 16000
+    window: int = 320000
+    blank_threshold: float = 0.98
+    padding: tuple = (16000, 4000)
