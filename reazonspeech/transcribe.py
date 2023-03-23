@@ -81,9 +81,12 @@ def _split_text(asr, audio, speech2text):
     rather than syntaxically.
     """
     if len(asr) < 2:
-        return []
+        return [(0, len(audio), asr)]
 
-    timings = _get_timings(asr, audio, speech2text)
+    try:
+        timings = _get_timings(asr, audio, speech2text)
+    except Exception:
+        return [(0, len(audio), asr)]
 
     # A simple heurestics to determine the phonemical threshold
     # to divide texts (98th longest speech pauses).
