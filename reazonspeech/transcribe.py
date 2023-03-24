@@ -113,11 +113,11 @@ def _split_text(asr, audio, speech2text):
 # Main API
 # ---------
 
-def transcribe(path, speech2text, config=None):
+def transcribe(audio, speech2text, config=None):
     """Interface function to transcribe audio data
 
     Args:
-      path (str): Path to audio file
+      audio (str or np.array): Path to audio file, or raw audio data.
       speech2text (espnet2.bin.asr.Speech2Text): ASR model to use
 
     Yields:
@@ -126,7 +126,9 @@ def transcribe(path, speech2text, config=None):
     if config is None:
         config = TranscribeConfig()
 
-    audio = librosa.load(path, sr=config.samplerate)[0]
+    if isinstance(audio, str):
+        audio = librosa.load(audio, sr=config.samplerate)[0]
+
     nsamples = len(audio)
     pos = 0
 
