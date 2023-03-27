@@ -31,4 +31,4 @@ class TranscribeConfig:
     samplerate: int = 16000
     window: int = 320000
     blank_threshold: float = 0.98
-    padding: tuple = (16000, 4000)
+    padding: tuple = (16000, 8000)
