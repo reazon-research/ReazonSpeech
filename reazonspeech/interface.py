@@ -9,9 +9,6 @@ class Caption:
     end_seconds: int
     text: str
 
-    def __str__(self):
-        return "%.2f\t%.2f\t%s" % (self.start_seconds, self.end_seconds, self.text)
-
 @dataclass
 class Utterance:
     """A pair of audio wave data and transcription."""

@@ -4,8 +4,9 @@ import torch
 import numpy as np
 import ctc_segmentation as ctc
 from .interface import Caption, TranscribeConfig
+from espnet2.bin.asr_inference import Speech2Text
 
-__all__ = "transcribe",
+__all__ = "transcribe", "load_default_model"
 
 # ---------
 # ASR Utils
@@ -113,7 +114,19 @@ def _split_text(asr, audio, speech2text):
 # Main API
 # ---------
 
-def transcribe(audio, speech2text, config=None):
+def load_default_model():
+    if torch.cuda.device_count() > 0:
+        device = "cuda"
+    else:
+        device = "cpu"
+    return Speech2Text.from_pretrained(
+        "https://huggingface.co/reazon-research/reazonspeech-espnet-next",
+        ctc_weight=0.3,
+        lm_weight=0.3,
+        beam_size=20,
+        device=device)
+
+def transcribe(audio, speech2text=None, config=None):
     """Interface function to transcribe audio data
 
     Args:
@@ -125,6 +138,9 @@ def transcribe(audio, speech2text, config=None):
     """
     if config is None:
         config = TranscribeConfig()
+
+    if speech2text is None:
+        speech2text = load_default_model()
 
     if isinstance(audio, str):
         audio = librosa.load(audio, sr=config.samplerate)[0]

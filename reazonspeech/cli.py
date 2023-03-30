@@ -1,0 +1,181 @@
+"""reazonspeech [-h] [--to={vtt,srt,json,tsv}] [-o file] audio
+
+OPTIONS
+
+    audio
+        Audio file to transcribe. It can be in any format as long
+        as librosa.load() can read.
+
+    -h, --help
+        Print this help message.
+
+    --to={vtt,srt,json,tsv}
+        Output format for transcription
+
+    -o file, --output=file
+        File to write transcription
+
+EXAMPLES
+
+    # Transcribe audio file
+    $ reazonspeech sample.wav
+
+    # Output subtitles in VTT format
+    $ reazonspeech --to=vtt -o sample.vtt sample.webm
+"""
+
+import sys
+import json
+import getopt
+import warnings
+import librosa
+from .transcribe import transcribe, load_default_model, TranscribeConfig
+
+#==============
+# Format Writer
+#==============
+
+class VTTWriter:
+    """WebVTT (Web Video Text Tracks) is a standard caption format defined
+    by W3C in 2010. It's supported by major browsers, and can be used with
+    HTML5.
+
+    See also: https://www.w3.org/TR/webvtt1/
+    """
+
+    @staticmethod
+    def _format_time(seconds):
+        h = int(seconds / 3600)
+        m = int(seconds / 60)
+        s = int(seconds % 60)
+        ms = int((seconds % 1) * 100)
+        return "%02i:%02i:%02i.%03i" % (h, m, s, ms)
+
+    def header(self, file):
+        file.write("WEBVTT\n\n")
+
+    def caption(self, file, caption):
+        start = self._format_time(caption.start_seconds)
+        end = self._format_time(caption.end_seconds)
+        file.write("%s --> %s\n%s\n\n" % (start, end, caption.text))
+
+class SRTWriter:
+    """SRT is a subtitle format commonly used by desktop programs. It was
+    originally developed by a Windows program SubRip.
+
+    See also: https://www.matroska.org/technical/subtitles.html#srt-subtitles
+    """
+
+    @staticmethod
+    def _format_time(seconds):
+        h = int(seconds / 3600)
+        m = int(seconds / 60)
+        s = int(seconds % 60)
+        ms = int((seconds % 1) * 100)
+        return "%02i:%02i:%02i,%03i" % (h, m, s, ms)
+
+    def header(self, file):
+        self.index = 0
+
+    def caption(self, file, caption):
+        self.index += 1
+        start = self._format_time(caption.start_seconds)
+        end = self._format_time(caption.end_seconds)
+        file.write("%i\n%s --> %s\n%s\n\n" % (self.index, start, end, caption.text))
+
+class JSONWriter:
+
+    def header(self, file):
+        return
+
+    def caption(self, file, caption):
+        line = json.dumps({
+            "start_seconds": round(caption.start_seconds, 3),
+            "end_seconds": round(caption.end_seconds, 3),
+            "text": caption.text
+        }, ensure_ascii=False)
+        file.write("%s\n" % line)
+
+class TSVWriter:
+
+    def header(self, file):
+        file.write("start_seconds\tend_seconds\ttext\n")
+
+    def caption(self, file, caption):
+        file.write("%.3f\t%.3f\t%s\n" % (caption.start_seconds, caption.end_seconds, caption.text))
+
+
+#======
+# Main
+#======
+
+def get_writer(ext):
+    writers = {
+        'vtt': VTTWriter,
+        'srt': SRTWriter,
+        'json': JSONWriter,
+        'tsv': TSVWriter
+    }
+    cls = writers.get(ext)
+    if cls is not None:
+        return cls()
+
+def show_progress(file, duration, caption):
+    dm = int(duration / 60)
+    ds = int(duration % 60)
+    m = int(caption.start_seconds / 60)
+    s = int(caption.start_seconds % 60)
+    done = caption.end_seconds / duration * 100
+    file.write("%3i%% total=%02i:%02i pos=%02i:%02i %s\n" % (done, dm, ds, m, s, caption.text))
+
+def show_usage(file):
+    print(__doc__, file=file)
+
+def main():
+    config = TranscribeConfig()
+    writer = JSONWriter()
+    outfile = sys.stdout
+    progress = False
+
+    opts, args = getopt.getopt(sys.argv[1:], "ho:", ("help", "output=", "to=",))
+    for k, v in opts:
+        if k in ("-h", "--help"):
+            show_usage(sys.stdout)
+            return
+        elif k in ("-o", "--output"):
+            outfile = open(v, "a")
+        elif k == "--to":
+            writer = get_writer(v)
+
+    if not writer:
+        print("unknown output format", file=sys.stderr)
+        show_usage(sys.stderr)
+        return 1
+
+    if not args:
+        print("no audio file specified", file=sys.stderr)
+        show_usage(sys.stderr)
+        return 2
+
+    if outfile != sys.stdout:
+        progress = True
+
+    warnings.simplefilter("ignore")
+
+    # Load audio and ASR model
+    audio = librosa.load(args[0], sr=config.samplerate)[0]
+    duration = len(audio) / config.samplerate
+    speech2text = load_default_model()
+
+    # Transcribe audio
+    writer.header(outfile)
+
+    for caption in transcribe(audio, speech2text):
+        writer.caption(outfile, caption)
+        if progress:
+            show_progress(sys.stdout, duration, caption)
+
+    outfile.close()
+
+if __name__ == "__main__":
+    sys.exit(main())
