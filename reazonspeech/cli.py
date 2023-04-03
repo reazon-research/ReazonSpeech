@@ -29,6 +29,7 @@ EXAMPLES
 import os
 import sys
 import json
+import tqdm
 import getopt
 import warnings
 import librosa
@@ -172,22 +173,12 @@ def get_default_writer(file):
     # Default to JSON
     return JSONWriter()
 
-def show_progress(file, duration, caption):
-    dm = int(duration / 60)
-    ds = int(duration % 60)
-    m = int(caption.start_seconds / 60)
-    s = int(caption.start_seconds % 60)
-    done = caption.end_seconds / duration * 100
-    file.write("%3i%% total=%02i:%02i pos=%02i:%02i %s\n" % (done, dm, ds, m, s, caption.text))
-
 def show_usage(file):
     print(__doc__, file=file)
 
 def main():
-    config = TranscribeConfig()
-    outfile = sys.stdout
+    outpath = None
     outext = None
-    progress = False
 
     opts, args = getopt.getopt(sys.argv[1:], "ho:", ("help", "output=", "to=",))
     for k, v in opts:
@@ -195,9 +186,14 @@ def main():
             show_usage(sys.stdout)
             return
         elif k in ("-o", "--output"):
-            outfile = open(v, "a")
+            outpath = v
         elif k == "--to":
             outext = v
+
+    if outpath is not None:
+        outfile = open(outpath, 'w')
+    else:
+        outfile = sys.stdout
 
     if outext is not None:
         writer = get_writer(outext)
@@ -212,27 +208,30 @@ def main():
     if not args:
         print("no audio file specified", file=sys.stderr)
         show_usage(sys.stderr)
-        return 2
-
-    if outfile != sys.stdout:
-        progress = True
+        return 1
 
     warnings.simplefilter("ignore")
 
     # Load audio and ASR model
+    config = TranscribeConfig()
     audio = librosa.load(args[0], sr=config.samplerate)[0]
-    duration = len(audio) / config.samplerate
     speech2text = load_default_model()
+
+    # Prepare progress bar
+    pbar = tqdm.tqdm(total=int(len(audio) / config.samplerate),
+                     unit='s', desc='Transcribing',
+                     disable=outfile.isatty())
 
     # Transcribe audio
     writer.header(outfile)
 
     for caption in transcribe(audio, speech2text):
         writer.caption(outfile, caption)
-        if progress:
-            show_progress(sys.stdout, duration, caption)
+        pbar.n = round(caption.end_seconds)
+        pbar.refresh()
 
     outfile.close()
+    pbar.close()
 
 if __name__ == "__main__":
     sys.exit(main())
