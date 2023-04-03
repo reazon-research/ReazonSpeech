@@ -4,7 +4,6 @@ import torch
 import numpy as np
 import ctc_segmentation as ctc
 from .interface import Caption, TranscribeConfig
-from espnet2.bin.asr_inference import Speech2Text
 
 __all__ = "transcribe", "load_default_model"
 
@@ -115,6 +114,7 @@ def _split_text(asr, audio, speech2text):
 # ---------
 
 def load_default_model():
+    from espnet2.bin.asr_inference import Speech2Text
     if torch.cuda.device_count() > 0:
         device = "cuda"
     else:
