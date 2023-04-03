@@ -1,4 +1,6 @@
-"""reazonspeech [-h] [--to={vtt,srt,json,tsv}] [-o file] audio
+"""USAGE
+
+    reazonspeech [-h] [--to={vtt,srt,ass,json,tsv}] [-o file] audio
 
 OPTIONS
 
@@ -9,7 +11,7 @@ OPTIONS
     -h, --help
         Print this help message.
 
-    --to={vtt,srt,json,tsv}
+    --to={vtt,srt,ass,json,tsv}
         Output format for transcription
 
     -o file, --output=file
@@ -51,7 +53,7 @@ class VTTWriter:
         h = int(seconds / 3600)
         m = int(seconds / 60)
         s = int(seconds % 60)
-        ms = int((seconds % 1) * 100)
+        ms = int((seconds % 1) * 1000)
         return "%02i:%02i:%02i.%03i" % (h, m, s, ms)
 
     def header(self, file):
@@ -76,7 +78,7 @@ class SRTWriter:
         h = int(seconds / 3600)
         m = int(seconds / 60)
         s = int(seconds % 60)
-        ms = int((seconds % 1) * 100)
+        ms = int((seconds % 1) * 1000)
         return "%02i:%02i:%02i,%03i" % (h, m, s, ms)
 
     def header(self, file):
@@ -87,6 +89,43 @@ class SRTWriter:
         start = self._format_time(caption.start_seconds)
         end = self._format_time(caption.end_seconds)
         file.write("%i\n%s --> %s\n%s\n\n" % (self.index, start, end, caption.text))
+
+class ASSWriter:
+    """ASS is another common format among desktop apps. It was developed
+    by Advanced Sub Station Alpha, and can be used to burn subtitles
+    using libass.
+
+    See also: https://github.com/libass/libass
+    See also: https://trac.ffmpeg.org/wiki/HowToBurnSubtitlesIntoVideo
+    """
+
+    ext = 'ass'
+
+    @staticmethod
+    def _format_time(seconds):
+        h = int(seconds / 3600)
+        m = int(seconds / 60)
+        s = int(seconds % 60)
+        cs = int((seconds % 1) * 100)
+        return "%i:%02i:%02i.%02i" % (h, m, s, cs)
+
+    def header(self, file):
+        file.write("""\
+[Script Info]
+ScriptType: v4.00+
+Collisions: Normal
+Timer: 100.0000
+
+[V4+ Styles]
+Style: Default,Arial,16,&Hffffff,&Hffffff,&H0,&H0,0,0,0,0,100,100,0,0,1,1,0,2,10,10,10,0
+
+[Events]
+""")
+
+    def caption(self, file, caption):
+        start = self._format_time(caption.start_seconds)
+        end = self._format_time(caption.end_seconds)
+        file.write("Dialogue: 0,%s,%s,Default,,0,0,0,,%s\n" % (start, end, caption.text))
 
 class JSONWriter:
 
@@ -119,7 +158,7 @@ class TSVWriter:
 #======
 
 def get_writer(ext):
-    for cls in (VTTWriter, SRTWriter, JSONWriter, TSVWriter):
+    for cls in (VTTWriter, SRTWriter, ASSWriter, JSONWriter, TSVWriter):
         if cls.ext == ext:
             return cls()
 
