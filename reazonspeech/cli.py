@@ -21,9 +21,10 @@ EXAMPLES
     $ reazonspeech sample.wav
 
     # Output subtitles in VTT format
-    $ reazonspeech --to=vtt -o sample.vtt sample.webm
+    $ reazonspeech -o sample.vtt sample.webm
 """
 
+import os
 import sys
 import json
 import getopt
@@ -42,6 +43,8 @@ class VTTWriter:
 
     See also: https://www.w3.org/TR/webvtt1/
     """
+
+    ext = 'vtt'
 
     @staticmethod
     def _format_time(seconds):
@@ -66,6 +69,8 @@ class SRTWriter:
     See also: https://www.matroska.org/technical/subtitles.html#srt-subtitles
     """
 
+    ext = 'srt'
+
     @staticmethod
     def _format_time(seconds):
         h = int(seconds / 3600)
@@ -85,6 +90,8 @@ class SRTWriter:
 
 class JSONWriter:
 
+    ext = 'json'
+
     def header(self, file):
         return
 
@@ -98,6 +105,8 @@ class JSONWriter:
 
 class TSVWriter:
 
+    ext = 'tsv'
+
     def header(self, file):
         file.write("start_seconds\tend_seconds\ttext\n")
 
@@ -110,15 +119,19 @@ class TSVWriter:
 #======
 
 def get_writer(ext):
-    writers = {
-        'vtt': VTTWriter,
-        'srt': SRTWriter,
-        'json': JSONWriter,
-        'tsv': TSVWriter
-    }
-    cls = writers.get(ext)
-    if cls is not None:
-        return cls()
+    for cls in (VTTWriter, SRTWriter, JSONWriter, TSVWriter):
+        if cls.ext == ext:
+            return cls()
+
+def get_default_writer(file):
+    # Guess an appropriate format from the file name
+    ext = os.path.splitext(file.name)[1][1:]
+    writer = get_writer(ext)
+    if writer is not None:
+        return writer
+
+    # Default to JSON
+    return JSONWriter()
 
 def show_progress(file, duration, caption):
     dm = int(duration / 60)
@@ -133,8 +146,8 @@ def show_usage(file):
 
 def main():
     config = TranscribeConfig()
-    writer = JSONWriter()
     outfile = sys.stdout
+    outext = None
     progress = False
 
     opts, args = getopt.getopt(sys.argv[1:], "ho:", ("help", "output=", "to=",))
@@ -145,7 +158,12 @@ def main():
         elif k in ("-o", "--output"):
             outfile = open(v, "a")
         elif k == "--to":
-            writer = get_writer(v)
+            outext = v
+
+    if outext is not None:
+        writer = get_writer(outext)
+    else:
+        writer = get_default_writer(outfile)
 
     if not writer:
         print("unknown output format", file=sys.stderr)
