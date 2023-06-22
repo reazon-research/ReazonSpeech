@@ -52,7 +52,7 @@ class VTTWriter:
     @staticmethod
     def _format_time(seconds):
         h = int(seconds / 3600)
-        m = int(seconds / 60)
+        m = int(seconds / 60) % 60
         s = int(seconds % 60)
         ms = int((seconds % 1) * 1000)
         return "%02i:%02i:%02i.%03i" % (h, m, s, ms)
@@ -77,7 +77,7 @@ class SRTWriter:
     @staticmethod
     def _format_time(seconds):
         h = int(seconds / 3600)
-        m = int(seconds / 60)
+        m = int(seconds / 60) % 60
         s = int(seconds % 60)
         ms = int((seconds % 1) * 1000)
         return "%02i:%02i:%02i,%03i" % (h, m, s, ms)
@@ -105,7 +105,7 @@ class ASSWriter:
     @staticmethod
     def _format_time(seconds):
         h = int(seconds / 3600)
-        m = int(seconds / 60)
+        m = int(seconds / 60) % 60
         s = int(seconds % 60)
         cs = int((seconds % 1) * 100)
         return "%i:%02i:%02i.%02i" % (h, m, s, cs)
