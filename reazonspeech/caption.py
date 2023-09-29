@@ -3,7 +3,7 @@
 #
 #  * Port the algorithm from C++ to Python.
 #  * Implement new PCR/PTR parsers.
-#  * Add relative timestamp support (= compute timestemps from the
+#  * Add relative timestamp support (= compute timestamps from the
 #    beginning of the stream).
 # ----
 # Copyright (c) 2014 Kohei Suzuki
@@ -183,7 +183,7 @@ def _parse_pmt(payload):
 
 def _parse_caption(payload):
     """Extract the caption (and its timestamp) from packetized
-    elemantary stream."""
+    elementary stream."""
     pts = None
     text = ""
 
