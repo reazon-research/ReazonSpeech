@@ -43,7 +43,7 @@ def normalize(text):
     return text.translate(_SPECIALS).translate(_HAN2ZEN)
 
 def cer(text, asr):
-    """Compute CER (Characeter Error Rate).
+    """Compute CER (Character Error Rate).
 
     Args:
         text(str): The correct label text

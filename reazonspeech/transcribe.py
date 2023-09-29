@@ -12,7 +12,7 @@ __all__ = "transcribe", "load_default_model"
 # ---------
 
 def _ctc_decode(audio, speech2text):
-    """Get charcter probabilities per frame using CTC network"""
+    """Get character probabilities per frame using CTC network"""
 
     # Prepare audio data for encode()
     speech = torch.tensor(audio).unsqueeze(0)
@@ -44,7 +44,7 @@ def _find_blank(audio, speech2text, threshold=0.98):
     # Get character probability matrix using CTC
     lpz = _ctc_decode(audio, speech2text)
 
-    # Now find all the consequtive nospeech segment
+    # Now find all the consecutive nospeech segment
     blanks = [Blank(nsamples, nsamples)]
     start = None
     for idx, prob in enumerate(lpz.T[blank_id]):
@@ -78,7 +78,7 @@ def _split_text(asr, audio, speech2text):
 
     This works kind of like a sentence splitter. The difference
     is that it splits texts phonemically (by no-speech pauses),
-    rather than syntaxically.
+    rather than syntactically.
     """
     if len(asr) < 2:
         return [(0, len(audio), asr)]
