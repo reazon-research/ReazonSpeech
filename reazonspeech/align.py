@@ -1,6 +1,6 @@
 from .utils import load_audio
 from .caption import get_captions
-from .sentence import build_sentences
+from .sentence import build_sentences, _cleanup
 from .interface import Utterance
 from .text import cer, normalize
 
@@ -72,7 +72,10 @@ def get_utterances(path, ctc_segmentation, speech2text=None,
       A list of Utterance objects
     """
     samplerate = int(ctc_segmentation.fs)
-    captions = build_sentences(get_captions(path))
+    captions = get_captions(path)
+    for i, caption in enumerate(captions):
+        captions[i].text = _cleanup(caption.text)
+    # captions = build_sentences(get_captions(path))
     buffer = load_audio(path, samplerate)
     utterances = []
 
