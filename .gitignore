@@ -5,3 +5,9 @@ __pycache__
 *.flac
 *.egg-info
 *.zip
+.venv
+exp/
+*.csv
+*.mp3
+config.ini
+output/
