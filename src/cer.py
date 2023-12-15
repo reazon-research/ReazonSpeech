@@ -1,5 +1,6 @@
 import os
 import re
+import scipy
 import librosa
 from tqdm import tqdm
 
@@ -26,7 +27,7 @@ def calculate_cer(reference, hypothesis):
     :return: The CER
     """
     # 句読点と特定の記号を除去する
-    punctuation_regex = re.compile(r"[.,!?？！;:()、。ぁぃぅぇぉっ\'\"-]")
+    punctuation_regex = re.compile(r"[.,!?？！;:()、。ぁぃぅぇぉっ《・》「」\'\"-]")
     reference = punctuation_regex.sub("", reference).replace(" ", "").lower()
     hypothesis = punctuation_regex.sub("", hypothesis).replace(" ", "").lower()
 
@@ -58,14 +59,14 @@ def transcribe_audio(waveform):
     # 音声ファイルを読み込み、書き起こしを行う
     model_size = "large-v2"
     model = WhisperModel(model_size, device="cuda", compute_type="float16")
-    segments, info = model.transcribe(audio=waveform, beam_size=5)
+    segments, info = model.transcribe(audio=waveform, beam_size=5, language="ja")
     text = ""
     for segment in segments:
         text += segment.text
     return text
 
 
-def save_to_dataset(true_text, predicted_text, threshold=0.2):
+def save_to_dataset(true_text, predicted_text, threshold=0.3):
     cer = calculate_cer(true_text, predicted_text)
     if cer <= threshold:
         return True
@@ -88,13 +89,17 @@ def get_cer_infer(audio_file_name, csv_file_path):
         output_filename = utt.text
         output_file_path = f"{output_dir}{cer_dir}{i}_{output_filename}.wav"
         utterances[i].start_seconds += 0.22
-        utterances[i].end_seconds += 0.4
+        utterances[i].end_seconds += 0.5
 
-        cer_audio = audio[utterances[i].start_seconds * 1000 : utterances[i].end_seconds * 1000]
+        cer_audio = audio[
+            int(utterances[i].start_seconds * 16000) : int(
+                utterances[i].end_seconds * 16000
+            )
+        ]
         infer_text = transcribe_audio(cer_audio)
 
         if save_to_dataset(utt.text, infer_text):
-            cer_audio.export(output_file_path, format="wav")
+            scipy.io.wavfile.write(output_file_path, 16000, cer_audio)
             output_dataset.append(utt)
 
     create_csv(output_dataset, csv_file_path)
@@ -120,8 +125,12 @@ def main():
     for file_name in os.listdir(audio_dir):
         if file_name.endswith(".m2ts"):
             # m2tsファイルを.mp3に変換
-            extract_audio_from_m2ts(f"{audio_dir}{file_name}", f"{audio_dir}{file_name[:-5]}.wav")
-            get_cer_infer(f"{audio_dir}{file_name}", "output/dataset/reazonspeech_cer_data.csv")
+            extract_audio_from_m2ts(
+                f"{audio_dir}{file_name}", f"{audio_dir}{file_name[:-5]}.wav"
+            )
+            get_cer_infer(
+                f"{audio_dir}{file_name}", "output/dataset/reazonspeech_cer_data.csv"
+            )
 
 
 if __name__ == "__main__":
