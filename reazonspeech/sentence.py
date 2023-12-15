@@ -11,6 +11,9 @@ def _cleanup(s):
     """Remove special characters to help sentence splitter"""
     s = re.sub(r"^.*≫", "", s)
     s = re.sub(r"^.*＞＞", "", s)
+    s = re.sub(r"^.*＜＜", "", s)
+    s = re.sub(r"^.*<<", "", s)
+    s = re.sub(r"^.*>>", "", s)
     s = re.sub(r"\([^)]*\)", "", s)
     s = re.sub(r"（[^）]*）", "", s)
     s = re.sub(r"\s", "", s)
