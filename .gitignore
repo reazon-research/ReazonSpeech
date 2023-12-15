@@ -10,4 +10,5 @@ exp/
 *.csv
 *.mp3
 config.ini
-output/
+output/*
+espnet/*
