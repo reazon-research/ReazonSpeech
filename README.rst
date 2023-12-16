@@ -104,3 +104,26 @@ LICENSE
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
+
+
+## データセット生成について
+m2tsファイルから音声と字幕のタイムスタンプを一致したデータを自動で生成してくれるスクリプト
+
+環境構築用にrequirements.txtを用意したので, 必要に合わせてインストールするとセットアップはできると思う
+ただ, あらかじめReaonSpeechを使うためのセットアップは上を参考にしてあらかじめ別で行う必要あり（もしかしたらやらなくても大丈夫）
+
+現状ReazonSpeechを使ったbaseモデル, vad判定を加えたbase+vadモデル, そして外れ値や細かい閾値調整をしたcerモデルがある
+ただし, コードが整備された状態で扱えるのはcerモデルのみ（vadモデルは今は動かないかも）
+
+```
+output_dir = "output/" ->出力されるディレクトリ
+cer_dir = "ReazonSpeech_base_data/" ->音声データが格納されるディレクトリ（output_dirの配下）
+audio_dir = "audio_data/" ->推論したい音声データ（m2ts）を格納するディレクトリ
+```
+をそれぞれ指定する必要あり
+
+それが準備できたら,
+下記のコマンドを実行すれば推論結果のタイムスタンプに合わせたそれぞれの音声とcsvが出力される.
+```
+python3 src/cer.py
+```
