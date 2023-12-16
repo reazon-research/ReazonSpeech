@@ -11,7 +11,6 @@ import reazonspeech as rs
 from utils import create_csv, extract_audio_from_m2ts
 
 output_dir = "output/"
-base_dir = "ReazonSpeech_base_data/"
 cer_dir = "ReazonSpeech_cer_data/"
 audio_dir = "audio_data/"
 sampling_rate = 16000
@@ -75,21 +74,24 @@ def save_to_dataset(true_text, predicted_text, threshold=0.3):
 
 
 def get_cer_infer(audio_file_name, csv_file_path):
-    if not os.path.exists(f"{output_dir}{cer_dir}"):
-        os.makedirs(f"{output_dir}{cer_dir}")
+    if not os.path.exists(f"{output_dir}{cer_dir}{audio_file_name[:-5]}/"):
+        os.makedirs(f"{output_dir}{cer_dir}{audio_file_name[:-5]}/")
 
     # ReazonSpeechを使ってタイムスタンプの予測結果を出力させる
-    utterances = get_ctc_segmentation(audio_file_name)
+    audio_file_path = f"{audio_dir}{audio_file_name}"
+    utterances = get_ctc_segmentation(audio_file_path)
     # 音声ファイルを保存&読み込む
-    audio, sr = librosa.load(f"{audio_file_name[:-5]}.wav", sr=16000)
+    audio, sr = librosa.load(f"{audio_file_path[:-5]}.wav", sr=16000)
 
     # 一つ一つの字幕とタイムスタンプの組み合わせに対して, 閾値の調整＆大きく外れているものを取り除く
     output_dataset = []
     for i, utt in tqdm(enumerate(utterances)):
         output_filename = utt.text
-        output_file_path = f"{output_dir}{cer_dir}{i}_{output_filename}.wav"
+        output_file_path = f"{output_dir}{cer_dir}{audio_file_name[:-5]}/{i}_{output_filename}.wav"
         utterances[i].start_seconds += 0.22
         utterances[i].end_seconds += 0.5
+        if len(output_filename) > 60:
+            continue
 
         cer_audio = audio[
             int(utterances[i].start_seconds * 16000) : int(
@@ -129,7 +131,7 @@ def main():
                 f"{audio_dir}{file_name}", f"{audio_dir}{file_name[:-5]}.wav"
             )
             get_cer_infer(
-                f"{audio_dir}{file_name}", "output/dataset/reazonspeech_cer_data.csv"
+                file_name, f"output/dataset/reazonspeech_cer_data/{file_name[:-5]}.csv"
             )
 
 
