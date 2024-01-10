@@ -136,7 +136,7 @@ def save_to_dataset(true_text: str, predicted_text: str, threshold: float = 0.1)
     cer = round(cer, 2)
     if cer <= threshold:
         return 0, cer
-    elif cer <= 1:
+    elif cer < 1.5:
         return 1, cer
     else:
         return 2, cer
@@ -169,9 +169,11 @@ def get_timestamps(
     # 一つ一つの字幕とタイムスタンプの組み合わせに対して, 閾値の調整＆大きく外れているものを取り除く
     output_dataset = []
     for idx, utt in enumerate(utterances):
-        if idx != 0 and utterances[idx - 1].end_seconds > utt.start_seconds:
-            utt.start_seconds = utterances[idx - 1].end_seconds + 0.1
         print(f"\n{idx}番目: {utt.text}の推論を開始")
+        output_file_path = f"{output_audio_file_path}{idx}_{true_text}.wav"
+        scipy.io.wavfile.write(
+            output_file_path, 16000, audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
+        )
         true_text = text_cleanup(utt.text)
         # 閾値調整
         if len(utt.text) > 70:
@@ -179,9 +181,16 @@ def get_timestamps(
         utt.start_seconds, utt.end_seconds, predicted_text = get_cer_infer(utt, audio, model)
         true_text = correct_typo(true_text)
         flag, cer = save_to_dataset(true_text, predicted_text)
+        # 一つ前の終わりを調整する
+        if idx != 0 and utterances[idx - 1].end_seconds > utt.start_seconds and flag != 2:
+            utterances[idx - 1].end_seconds = utt.start_seconds - 0.1
+            output_file_path = f"{output_audio_file_path}{idx - 1}_{true_text}.wav"
+            scipy.io.wavfile.write(
+                output_file_path, 16000, audio[int(utterances[idx - 1].start_seconds * 16000) : int(utterances[idx - 1].end_seconds * 16000)]
+            )
         if flag != 0:
+            os.remove(output_file_path)
             continue
-        output_file_path = f"{output_audio_file_path}{idx}_{true_text}.wav"
         scipy.io.wavfile.write(
             output_file_path, 16000, audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
         )
@@ -213,7 +222,7 @@ def get_cer_infer(utt, audio, model):
             continue
         # 明らかに推論場所がおかしい時は細かい調整を飛ばす
         # TODO: 別モデルを使うorCTCモデルの精度を上げる
-        if flag >= 1.5:
+        if flag == 2:
             break
         # 一回目の書き起こしは前回との比較がないのでそのまま代入
         if flag_text == "":
@@ -225,7 +234,7 @@ def get_cer_infer(utt, audio, model):
             break
         # 書き起こし開始の予測が早すぎた場合は一度戻す
         elif len(infer_text) + 3 < len(true_text):
-            utt.start_seconds -= 1
+            utt.start_seconds -= 0.3
         else:
             utt.start_seconds += 0.1
             whisper_audio = audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
@@ -233,7 +242,7 @@ def get_cer_infer(utt, audio, model):
     print(
         f"1: 始まり判定 flag: {flag}, cer: {cer}, eval time: {datetime.now() - s1}, infer: {infer_text}, true: {true_text}"
     )
-    if cer == 0 or cer >= 1.5:
+    if cer == 0 or flag == 2:
         utt.end_seconds += 0.5
         print(f"終了, cer: {cer}, total eval time: {datetime.now() - s1}")
         return utt.start_seconds, utt.end_seconds, infer_text
@@ -254,7 +263,7 @@ def get_cer_infer(utt, audio, model):
             utt.end_seconds += 0.3
             break
         # あとでbreakのみにする
-        elif flag >= 1:
+        elif flag == 2:
             utt.end_seconds -= 0.2 * (i + 1)
             break
     print(
