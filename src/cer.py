@@ -170,11 +170,11 @@ def get_timestamps(
     output_dataset = []
     for idx, utt in enumerate(utterances):
         print(f"\n{idx}番目: {utt.text}の推論を開始")
+        true_text = text_cleanup(utt.text)
         output_file_path = f"{output_audio_file_path}{idx}_{true_text}.wav"
         scipy.io.wavfile.write(
             output_file_path, 16000, audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
         )
-        true_text = text_cleanup(utt.text)
         # 閾値調整
         if len(utt.text) > 70:
             continue
