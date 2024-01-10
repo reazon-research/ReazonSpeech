@@ -2,11 +2,9 @@ from datetime import datetime
 import unicodedata
 import os
 import re
-from numpy import datetime_data
 import scipy
 import librosa
 import pickle
-from tqdm import tqdm
 
 from espnet2.bin.asr_align import CTCSegmentation
 from faster_whisper import WhisperModel
@@ -47,8 +45,9 @@ def correct_typo(text: str) -> str:
     text = unicodedata.normalize("NFKC", text)
     text = conv.do(text)
     # 句読点と特定の記号を除去する
-    punctuation_regex = re.compile(r"[.,!?？！;:()、。ぁぃぅぇぉっ-ー~〜《・》「」\'\"-]")
+    punctuation_regex = re.compile(r"[.,!?？！;:()、。ぁぃぅぇぉっ\-ー~〜\'\"-]")
     text = punctuation_regex.sub("", text).replace(" ", "").lower()
+    # print("convert delete", text)
     return text
 
 
@@ -89,11 +88,6 @@ def calculate_cer(reference: str, hypothesis: str) -> float:
     :param hypothesis: The predicted text
     :return: The CER
     """
-    # 句読点と特定の記号を除去する
-    punctuation_regex = re.compile(r"[.,!?？！;:()、。ぁぃぅぇぉっ\'\"-]")
-    reference = punctuation_regex.sub("", reference).replace(" ", "").lower()
-    hypothesis = punctuation_regex.sub("", hypothesis).replace(" ", "").lower()
-
     # レーベンシュタイン距離（編集距離）を計算
     if len(reference) == 0:
         return 1 if len(hypothesis) > 0 else 0
@@ -128,19 +122,12 @@ def transcribe_audio(waveform, model) -> str:
 
 
 def text_cleanup(text: str) -> str:
-    text = re.sub(r"^.*≫", "", text)
-    text = re.sub(r"^.*≪", "", text)
-    text = re.sub(r"^.*＞＞", "", text)
-    text = re.sub(r"^.*＜＜", "", text)
-    text = re.sub(r"^.*「", "", text)
-    text = re.sub(r"^.*」", "", text)
-    text = re.sub(r"^.*（", "", text)
-    text = re.sub(r"^.*）", "", text)
-    text = re.sub(r"^.*<<", "", text)
-    text = re.sub(r"^.*>>", "", text)
-    text = re.sub(r"\([^)]*\)", "", text)
-    text = re.sub(r"（[^）]*）", "", text)
+    # 括弧内の全ての文字を削除
+    text = re.sub(r"[\(（][^)）]*[)）≫≪＞＞＜＜「」（）<<>>]", "", text)
+    # 全ての空白文字を削除
     text = re.sub(r"\s", "", text)
+    # 《・》「」を削除
+    text = re.sub(r"[《・》「」]", "", text)
     return text
 
 
@@ -153,165 +140,3 @@ def save_to_dataset(true_text: str, predicted_text: str, threshold: float = 0.1)
         return 1, cer
     else:
         return 2, cer
-
-
-def get_timestamps(
-    wav_file_path,
-    output_audio_file_path,
-    csv_file_path,
-    whisper_model: WhisperModel,
-):
-    if not os.path.exists(output_audio_file_path):
-        os.makedirs(output_audio_file_path)
-    # 音声ファイルを保存&読み込む
-    s2 = datetime.now()
-    audio, _ = librosa.load(wav_file_path, sr=16000)
-    print(f"librosa load: {datetime.now() - s2}")
-
-    model = whisper_model
-
-    # Load the utterances object from the file
-    with open("utterances.pkl", "rb") as f:
-        utterances = pickle.load(f)
-
-    # 一つ一つの字幕とタイムスタンプの組み合わせに対して, 閾値の調整＆大きく外れているものを取り除く
-    output_dataset = []
-    for idx, utt in enumerate(utterances):
-        print(f"\n{idx}番目: {utt.text}の推論を開始")
-        true_text = text_cleanup(utt.text)
-        output_file_path = f"{output_audio_file_path}{idx}_{true_text}.wav"
-        scipy.io.wavfile.write(
-            output_file_path, 16000, audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
-        )
-        # 閾値調整
-        if len(utt.text) > 70:
-            continue
-        utt.start_seconds, utt.end_seconds, predicted_text = get_cer_infer(utt, audio, model)
-        true_text = correct_typo(true_text)
-        flag, cer = save_to_dataset(true_text, predicted_text)
-        if flag != 0:
-            os.remove(output_file_path)
-            continue
-        scipy.io.wavfile.write(
-            output_file_path, 16000, audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
-        )
-        output_dataset.append(utt)
-
-    print("残ったデータの件数: ", len(output_dataset))
-    create_csv(output_dataset, csv_file_path)
-
-
-def get_cer_infer(utt, audio, model):
-    utt.start_seconds += 0.22
-    subtitle_data = correct_typo(text_cleanup(utt.text))
-    # 初期値
-    flag = False
-    infer_text = ""
-    whisper_audio = audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
-
-    s1 = datetime.now()
-    # 一つ前の書き起こしと比較をするために用いる
-    flag_text = infer_text
-    # 始まりを短くする
-    for i in range(3):
-        infer_text = transcribe_audio(whisper_audio, model)
-        infer_text = correct_typo(text_cleanup(infer_text))
-        print(infer_text, flag_text, subtitle_data)
-        if len(infer_text) <= 1 or not subtitle_data:
-            utt.start_seconds += 0.1
-            whisper_audio = audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
-            continue
-        # 一回目の書き起こしは前回との比較がないのでそのまま代入
-        if i == 0:
-            flag_text = infer_text
-        # 二回目以降の書き起こしは前との書き起こしで最初の文字が違う, かつ正解データと前の書き起こしが一致している場合は”始まりの予測を遅くしすぎたという”判定で終了させる
-        elif flag_text[0] != infer_text[0] and flag_text[0] == subtitle_data[0]:
-            utt.start_seconds -= 0.4
-            whisper_audio = audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
-            break
-        # 書き起こし開始の予測が早すぎた場合は一度戻す
-        elif len(infer_text) + 3 < len(subtitle_data):
-            utt.start_seconds -= 1
-        else:
-            utt.start_seconds += 0.1
-            whisper_audio = audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
-    flag, cer = save_to_dataset(subtitle_data, infer_text)
-    print(
-        f"1: 始まり判定 flag: {flag}, cer: {cer}, eval time: {datetime.now() - s1}, text: {infer_text}, subtitle: {subtitle_data}"
-    )
-    if cer == 0:
-        utt.end_seconds += 0.4
-        return utt.start_seconds, utt.end_seconds, infer_text
-
-    utt.end_seconds -= 0.4
-
-    # 終わりを伸ばす
-    s2 = datetime.now()
-    for i in range(10):
-        utt.end_seconds += 0.2
-        whisper_audio = audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
-        infer_text = transcribe_audio(whisper_audio, model)
-        infer_text = correct_typo(text_cleanup(infer_text))
-        flag, cer = save_to_dataset(subtitle_data, infer_text)
-        print(
-            f"2: 終わりを伸ばす flag: {flag}, cer: {cer}, eval time: {datetime.now() - s2}, text: {infer_text}, subtitle: {subtitle_data}"
-        )
-        if flag == 0:
-            utt.end_seconds += 0.3
-            break
-
-    utt.duration = utt.start_seconds - utt.end_seconds
-    # 導入時はreturnの引数を変える
-    return utt.start_seconds, utt.end_seconds, infer_text
-
-
-def get_ctc_segmentation(audio_file_name):
-    # Extract audio and transcriptions
-    print("audio_file_name: ", audio_file_name)
-    utterances = rs.get_utterances(audio_file_name, ctc_segmentation)
-    print("get alignment successful")
-    # Save the utterances object to a file
-    with open("utterances.pkl", "wb") as f:
-        pickle.dump(utterances, f)
-
-    return utterances
-
-
-def single_m2ts_infer(audio_file_path, wav_file_path, output_file_path, csv_file_path, model):
-    # m2tsファイルを.mp3に変換
-    extract_audio_from_m2ts(audio_file_path, wav_file_path)
-    get_timestamps(
-        wav_file_path,
-        output_file_path,
-        csv_file_path,
-        model,
-    )
-
-
-def main():
-    model_size = "large-v3"
-    model = WhisperModel(model_size, device="cuda", compute_type="float16")
-
-    for file_name in os.listdir(audio_dir):
-        audio_file_path = f"{audio_dir}{file_name}"
-        wav_file_path = f"{audio_dir}{file_name[:-5]}.wav"
-        output_file_path = output_dir
-        csv_file_path = f"{csv_file_dir}{file_name[:-5]}.csv"
-        if file_name.endswith(".wav"):
-            get_timestamps(audio_file_path, wav_file_path, output_file_path, csv_file_path, model)
-        elif file_name.endswith(".m2ts"):
-            single_m2ts_infer(audio_file_path, wav_file_path, output_file_path, csv_file_path, model)
-
-
-if __name__ == "__main__":
-    # main()
-    model_size = "large-v3"
-    model = WhisperModel(model_size, device="cuda", compute_type="float16")
-
-    audio_file_path = "audio_data/test.m2ts"
-    wav_file_path = f"audio_data/test.wav"
-    output_file_path = "output/ReazonSpeech_cer_data/test/"
-    csv_file_path = f"output/dataset/reazonspeech_cer_data/test.csv"
-    s1 = datetime.now()
-    get_timestamps(wav_file_path, output_file_path, csv_file_path, model)
-    print(f"total time: {datetime.now() - s1}")
