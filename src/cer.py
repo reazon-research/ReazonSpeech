@@ -153,3 +153,49 @@ def save_to_dataset(true_text: str, predicted_text: str, threshold: float = 0.1)
         return 1, cer
     else:
         return 2, cer
+
+
+def get_timestamps(
+    wav_file_path,
+    output_audio_file_path,
+    csv_file_path,
+    whisper_model: WhisperModel,
+):
+    if not os.path.exists(output_audio_file_path):
+        os.makedirs(output_audio_file_path)
+    # 音声ファイルを保存&読み込む
+    s2 = datetime.now()
+    audio, _ = librosa.load(wav_file_path, sr=16000)
+    print(f"librosa load: {datetime.now() - s2}")
+
+    model = whisper_model
+
+    # Load the utterances object from the file
+    with open("utterances.pkl", "rb") as f:
+        utterances = pickle.load(f)
+
+    # 一つ一つの字幕とタイムスタンプの組み合わせに対して, 閾値の調整＆大きく外れているものを取り除く
+    output_dataset = []
+    for idx, utt in enumerate(utterances):
+        print(f"\n{idx}番目: {utt.text}の推論を開始")
+        true_text = text_cleanup(utt.text)
+        output_file_path = f"{output_audio_file_path}{idx}_{true_text}.wav"
+        scipy.io.wavfile.write(
+            output_file_path, 16000, audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
+        )
+        # 閾値調整
+        if len(utt.text) > 70:
+            continue
+        utt.start_seconds, utt.end_seconds, predicted_text = get_cer_infer(utt, audio, model)
+        true_text = correct_typo(true_text)
+        flag, cer = save_to_dataset(true_text, predicted_text)
+        if flag != 0:
+            os.remove(output_file_path)
+            continue
+        scipy.io.wavfile.write(
+            output_file_path, 16000, audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
+        )
+        output_dataset.append(utt)
+
+    print("残ったデータの件数: ", len(output_dataset))
+    create_csv(output_dataset, csv_file_path)
