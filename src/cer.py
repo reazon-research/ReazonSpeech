@@ -131,10 +131,10 @@ def text_cleanup(text: str) -> str:
     return text
 
 
-def save_to_dataset(true_text: str, predicted_text: str, threshold: float = 0.1) -> bool:
+def save_to_dataset(true_text: str, predicted_text: str, threshold: float = 0.15) -> bool:
     cer = calculate_cer(true_text, predicted_text)
     cer = round(cer, 2)
-    if cer <= threshold:
+    if cer < threshold:
         return 0, cer
     elif cer < 1:
         return 1, cer
@@ -182,12 +182,22 @@ def get_timestamps(
         true_text = correct_typo(true_text)
         flag, _ = save_to_dataset(true_text, predicted_text)
         # 一つ前の終わりを調整する
-        if idx != 0 and utterances[idx - 1].end_seconds > utt.start_seconds and flag != 2:
+        if idx != 0 and utterances[idx - 1].end_seconds > utt.start_seconds and flag == 0:
             utterances[idx - 1].end_seconds = utt.start_seconds - 0.1
-            output_file_path = f"{output_audio_file_path}{idx - 1}_{true_text}.wav"
-            scipy.io.wavfile.write(
-                output_file_path, 16000, audio[int(utterances[idx - 1].start_seconds * 16000) : int(utterances[idx - 1].end_seconds * 16000)]
-            )
+            true_bf_text = text_cleanup(utterances[idx - 1].text)
+            whisper_audio = audio[
+                int(utterances[idx - 1].start_seconds * 16000) : int(utterances[idx - 1].end_seconds * 16000)
+            ]
+            infer_text = transcribe_audio(whisper_audio, model)
+            infer_text = correct_typo(text_cleanup(infer_text))
+            flag_bf, _ = save_to_dataset(correct_typo(true_bf_text), infer_text)
+            if flag_bf == 0:
+                output_bf_file_path = f"{output_audio_file_path}{idx - 1}_{true_bf_text}.wav"
+                scipy.io.wavfile.write(
+                    output_bf_file_path,
+                    16000,
+                    whisper_audio,
+                )
         if flag != 0:
             os.remove(output_file_path)
             continue
@@ -213,7 +223,7 @@ def get_cer_infer(utt, audio, model):
     # 一つ前の書き起こしと比較をするために用いる
     flag_text = infer_text
     # 始まりを短くする
-    for i in range(4):
+    for i in range(5):
         infer_text = transcribe_audio(whisper_audio, model)
         infer_text = correct_typo(text_cleanup(infer_text))
         # 書き起こしした文字が0文字の場合はエラーがうまくできないので, バグ回避のため一度
@@ -235,8 +245,8 @@ def get_cer_infer(utt, audio, model):
             break
         # 書き起こし開始の予測が早すぎた場合は一度戻す
         # 毎回文字数が足りなくて戻りすぎている場合があったので今は0.3にしている
-        elif len(infer_text) + 3 < len(true_text):
-            utt.start_seconds -= 0.3
+        # elif len(infer_text) + 3 < len(true_text):
+        #     utt.start_seconds -= 0.3
         else:
             utt.start_seconds += 0.1
             whisper_audio = audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
@@ -253,7 +263,7 @@ def get_cer_infer(utt, audio, model):
 
     # 終わりを伸ばす
     s2 = datetime.now()
-    for i in range(10):
+    for i in range(5):
         utt.end_seconds += 0.2
         whisper_audio = audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
         infer_text = transcribe_audio(whisper_audio, model)
