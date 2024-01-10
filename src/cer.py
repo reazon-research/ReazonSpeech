@@ -199,3 +199,119 @@ def get_timestamps(
 
     print("残ったデータの件数: ", len(output_dataset))
     create_csv(output_dataset, csv_file_path)
+
+
+def get_cer_infer(utt, audio, model):
+    utt.start_seconds += 0.22
+    subtitle_data = correct_typo(text_cleanup(utt.text))
+    # 初期値
+    flag = False
+    infer_text = ""
+    whisper_audio = audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
+
+    s1 = datetime.now()
+    # 一つ前の書き起こしと比較をするために用いる
+    flag_text = infer_text
+    # 始まりを短くする
+    for i in range(3):
+        infer_text = transcribe_audio(whisper_audio, model)
+        infer_text = correct_typo(text_cleanup(infer_text))
+        print(infer_text, flag_text, subtitle_data)
+        if len(infer_text) <= 1 or not subtitle_data:
+            utt.start_seconds += 0.1
+            whisper_audio = audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
+            continue
+        # 一回目の書き起こしは前回との比較がないのでそのまま代入
+        if i == 0:
+            flag_text = infer_text
+        # 二回目以降の書き起こしは前との書き起こしで最初の文字が違う, かつ正解データと前の書き起こしが一致している場合は”始まりの予測を遅くしすぎたという”判定で終了させる
+        elif flag_text[0] != infer_text[0] and flag_text[0] == subtitle_data[0]:
+            utt.start_seconds -= 0.4
+            whisper_audio = audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
+            break
+        # 書き起こし開始の予測が早すぎた場合は一度戻す
+        elif len(infer_text) + 3 < len(subtitle_data):
+            utt.start_seconds -= 1
+        else:
+            utt.start_seconds += 0.1
+            whisper_audio = audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
+    flag, cer = save_to_dataset(subtitle_data, infer_text)
+    print(
+        f"1: 始まり判定 flag: {flag}, cer: {cer}, eval time: {datetime.now() - s1}, text: {infer_text}, subtitle: {subtitle_data}"
+    )
+    if cer == 0:
+        utt.end_seconds += 0.4
+        return utt.start_seconds, utt.end_seconds, infer_text
+
+    utt.end_seconds -= 0.4
+
+    # 終わりを伸ばす
+    s2 = datetime.now()
+    for i in range(10):
+        utt.end_seconds += 0.2
+        whisper_audio = audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
+        infer_text = transcribe_audio(whisper_audio, model)
+        infer_text = correct_typo(text_cleanup(infer_text))
+        flag, cer = save_to_dataset(subtitle_data, infer_text)
+        print(
+            f"2: 終わりを伸ばす flag: {flag}, cer: {cer}, eval time: {datetime.now() - s2}, text: {infer_text}, subtitle: {subtitle_data}"
+        )
+        if flag == 0:
+            utt.end_seconds += 0.3
+            break
+
+    utt.duration = utt.start_seconds - utt.end_seconds
+    # 導入時はreturnの引数を変える
+    return utt.start_seconds, utt.end_seconds, infer_text
+
+
+def get_ctc_segmentation(audio_file_name):
+    # Extract audio and transcriptions
+    print("audio_file_name: ", audio_file_name)
+    utterances = rs.get_utterances(audio_file_name, ctc_segmentation)
+    print("get alignment successful")
+    # Save the utterances object to a file
+    with open("utterances.pkl", "wb") as f:
+        pickle.dump(utterances, f)
+
+    return utterances
+
+
+def single_m2ts_infer(audio_file_path, wav_file_path, output_file_path, csv_file_path, model):
+    # m2tsファイルを.mp3に変換
+    extract_audio_from_m2ts(audio_file_path, wav_file_path)
+    get_timestamps(
+        wav_file_path,
+        output_file_path,
+        csv_file_path,
+        model,
+    )
+
+
+def main():
+    model_size = "large-v3"
+    model = WhisperModel(model_size, device="cuda", compute_type="float16")
+
+    for file_name in os.listdir(audio_dir):
+        audio_file_path = f"{audio_dir}{file_name}"
+        wav_file_path = f"{audio_dir}{file_name[:-5]}.wav"
+        output_file_path = output_dir
+        csv_file_path = f"{csv_file_dir}{file_name[:-5]}.csv"
+        if file_name.endswith(".wav"):
+            get_timestamps(audio_file_path, wav_file_path, output_file_path, csv_file_path, model)
+        elif file_name.endswith(".m2ts"):
+            single_m2ts_infer(audio_file_path, wav_file_path, output_file_path, csv_file_path, model)
+
+
+if __name__ == "__main__":
+    # main()
+    model_size = "large-v3"
+    model = WhisperModel(model_size, device="cuda", compute_type="float16")
+
+    audio_file_path = "audio_data/test.m2ts"
+    wav_file_path = f"audio_data/test.wav"
+    output_file_path = "output/ReazonSpeech_cer_data/test/"
+    csv_file_path = f"output/dataset/reazonspeech_cer_data/test.csv"
+    s1 = datetime.now()
+    get_timestamps(wav_file_path, output_file_path, csv_file_path, model)
+    print(f"total time: {datetime.now() - s1}")
