@@ -131,7 +131,12 @@ def text_cleanup(text: str) -> str:
     return text
 
 
-def save_to_dataset(true_text: str, predicted_text: str, threshold: float = 0.15) -> bool:
+def save_to_dataset(true_text: str, predicted_text: str, threshold: float = 0.1, beg_flag: bool = True) -> bool:
+    if beg_flag:
+        pass
+    else:
+        true_text = true_text[max(-10, -len(true_text)) :]
+        predicted_text = predicted_text[max(-10, -len(predicted_text)) :]
     cer = calculate_cer(true_text, predicted_text)
     cer = round(cer, 2)
     if cer < threshold:
@@ -180,9 +185,9 @@ def get_timestamps(
             continue
         utt.start_seconds, utt.end_seconds, predicted_text = get_cer_infer(utt, audio, model)
         true_text = correct_typo(true_text)
-        flag, _ = save_to_dataset(true_text, predicted_text)
+        flag, cer = save_to_dataset(true_text, predicted_text)
         # 一つ前の終わりを調整する
-        if idx != 0 and utterances[idx - 1].end_seconds > utt.start_seconds and flag == 0:
+        if idx != 0 and utterances[idx - 1].end_seconds > utt.start_seconds and cer < 0.5:
             utterances[idx - 1].end_seconds = utt.start_seconds - 0.1
             true_bf_text = text_cleanup(utterances[idx - 1].text)
             whisper_audio = audio[
@@ -223,7 +228,7 @@ def get_cer_infer(utt, audio, model):
     # 一つ前の書き起こしと比較をするために用いる
     flag_text = infer_text
     # 始まりを短くする
-    for i in range(5):
+    for i in range(4):
         infer_text = transcribe_audio(whisper_audio, model)
         infer_text = correct_typo(text_cleanup(infer_text))
         # 書き起こしした文字が0文字の場合はエラーがうまくできないので, バグ回避のため一度
@@ -268,7 +273,7 @@ def get_cer_infer(utt, audio, model):
         whisper_audio = audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
         infer_text = transcribe_audio(whisper_audio, model)
         infer_text = correct_typo(text_cleanup(infer_text))
-        flag, cer = save_to_dataset(true_text, infer_text)
+        flag, cer = save_to_dataset(true_text, infer_text, beg_flag=False)
         print(f"flag: {flag}, cer: {cer}, infer: {infer_text}, true: {true_text}")
         # 綺麗に書き起こせた場合
         if flag == 0:
