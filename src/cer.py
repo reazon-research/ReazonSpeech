@@ -136,7 +136,7 @@ def save_to_dataset(true_text: str, predicted_text: str, threshold: float = 0.1)
     cer = round(cer, 2)
     if cer <= threshold:
         return 0, cer
-    elif cer < 1.5:
+    elif cer < 1:
         return 1, cer
     else:
         return 2, cer
@@ -180,7 +180,7 @@ def get_timestamps(
             continue
         utt.start_seconds, utt.end_seconds, predicted_text = get_cer_infer(utt, audio, model)
         true_text = correct_typo(true_text)
-        flag, cer = save_to_dataset(true_text, predicted_text)
+        flag, _ = save_to_dataset(true_text, predicted_text)
         # 一つ前の終わりを調整する
         if idx != 0 and utterances[idx - 1].end_seconds > utt.start_seconds and flag != 2:
             utterances[idx - 1].end_seconds = utt.start_seconds - 0.1
@@ -216,6 +216,7 @@ def get_cer_infer(utt, audio, model):
     for i in range(4):
         infer_text = transcribe_audio(whisper_audio, model)
         infer_text = correct_typo(text_cleanup(infer_text))
+        # 書き起こしした文字が0文字の場合はエラーがうまくできないので, バグ回避のため一度
         if len(infer_text) <= 1 or not true_text:
             utt.start_seconds += 0.1
             whisper_audio = audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
@@ -233,6 +234,7 @@ def get_cer_infer(utt, audio, model):
             whisper_audio = audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
             break
         # 書き起こし開始の予測が早すぎた場合は一度戻す
+        # 毎回文字数が足りなくて戻りすぎている場合があったので今は0.3にしている
         elif len(infer_text) + 3 < len(true_text):
             utt.start_seconds -= 0.3
         else:
