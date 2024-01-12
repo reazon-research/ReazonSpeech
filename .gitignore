@@ -12,3 +12,4 @@ exp/
 config.ini
 output/*
 espnet/*
+*.pkl
