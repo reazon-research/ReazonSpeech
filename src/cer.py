@@ -183,7 +183,8 @@ def get_timestamps(
         # 閾値調整
         if len(utt.text) > 70:
             continue
-        utt.start_seconds, utt.end_seconds, predicted_text = get_cer_infer(utt, audio, model)
+        # タイムスタンプの調整
+        utt.start_seconds, utt.duration, utt.end_seconds, predicted_text = get_cer_infer(utt, audio, model)
         true_text = correct_typo(true_text)
         flag, cer = save_to_dataset(true_text, predicted_text)
         # 一つ前の終わりを調整する
@@ -203,6 +204,8 @@ def get_timestamps(
                     16000,
                     whisper_audio,
                 )
+                # ここはaynitaに合わせて修正
+                output_dataset[-1].end_seconds = utt.start_seconds - 0.1
         if flag != 0:
             os.remove(output_file_path)
             continue
@@ -248,10 +251,6 @@ def get_cer_infer(utt, audio, model):
             utt.start_seconds -= 0.1
             whisper_audio = audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
             break
-        # 書き起こし開始の予測が早すぎた場合は一度戻す
-        # 毎回文字数が足りなくて戻りすぎている場合があったので今は0.3にしている
-        # elif len(infer_text) + 3 < len(true_text):
-        #     utt.start_seconds -= 0.3
         else:
             utt.start_seconds += 0.1
             whisper_audio = audio[int(utt.start_seconds * 16000) : int(utt.end_seconds * 16000)]
@@ -261,8 +260,9 @@ def get_cer_infer(utt, audio, model):
     )
     if cer == 0 or flag == 2:
         utt.end_seconds += 0.5
+        utt.duration = utt.end_seconds - utt.start_seconds
         print(f"終了, cer: {cer}, total eval time: {datetime.now() - s1}")
-        return utt.start_seconds, utt.end_seconds, infer_text
+        return utt.start_seconds, utt.duration, utt.end_seconds, infer_text
 
     utt.end_seconds -= 0.4
 
@@ -274,7 +274,6 @@ def get_cer_infer(utt, audio, model):
         infer_text = transcribe_audio(whisper_audio, model)
         infer_text = correct_typo(text_cleanup(infer_text))
         flag, cer = save_to_dataset(true_text, infer_text, beg_flag=False)
-        print(f"flag: {flag}, cer: {cer}, infer: {infer_text}, true: {true_text}")
         # 綺麗に書き起こせた場合
         if flag == 0:
             utt.end_seconds += 0.3
@@ -287,10 +286,10 @@ def get_cer_infer(utt, audio, model):
         f"2: 終わりを伸ばす判定 flag: {flag}, cer: {cer}, eval time: {datetime.now() - s2}, infer: {infer_text}, true: {true_text}"
     )
 
-    utt.duration = utt.start_seconds - utt.end_seconds
+    utt.duration = utt.end_seconds - utt.start_seconds
     # 導入時はreturnの引数を変える
     print(f"終了, cer: {cer}, total eval time: {datetime.now() - s1}")
-    return utt.start_seconds, utt.end_seconds, infer_text
+    return utt.start_seconds, utt.duration, utt.end_seconds, infer_text
 
 
 def get_ctc_segmentation(audio_file_name):
@@ -341,7 +340,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-    exit()
     model_size = "large-v3"
     model = WhisperModel(model_size, device="cuda", compute_type="float16")
 
