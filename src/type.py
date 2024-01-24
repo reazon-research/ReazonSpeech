@@ -40,19 +40,3 @@ class SingleAlignedSegment(TypedDict):
     text: str
     words: List[SingleWordSegment]
     chars: Optional[List[SingleCharSegment]]
-
-
-class TranscriptionResult(TypedDict):
-    """
-    A list of segments and word segments of a speech.
-    """
-    segments: List[SingleSegment]
-    language: str
-
-
-class AlignedTranscriptionResult(TypedDict):
-    """
-    A list of segments and word segments of a speech.
-    """
-    segments: List[SingleAlignedSegment]
-    word_segments: List[SingleWordSegment]
