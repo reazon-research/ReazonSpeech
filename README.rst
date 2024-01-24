@@ -128,5 +128,6 @@ audio_dir = "audio_data/" ->推論したい音声データ（m2ts）を格納す
 それが準備できたら,
 下記のコマンドを実行すれば推論結果のタイムスタンプに合わせたそれぞれの音声とcsvが出力される.
 ```
+# ReaonSpeech * Whisperの書き起こしによる閾値調整
 python3 src/cer.py
 ```
