@@ -6,12 +6,10 @@ import scipy
 import librosa
 import pickle
 
-from espnet2.bin.asr_align import CTCSegmentation
 from faster_whisper import WhisperModel
-import reazonspeech as rs
 from pykakasi import kakasi
 
-from utils import create_csv, extract_audio_from_m2ts
+from utils import create_csv, extract_audio_from_m2ts, text_cleanup, get_ctc_segmentation
 
 output_dir = "output/ReazonSpeech_cer_data/"
 csv_file_dir = "output/dataset/reazonspeech_cer_data/"
@@ -24,18 +22,6 @@ kakashi = kakasi()
 kakashi.setMode("J", "H")
 kakashi.setMode("K", "H")
 conv = kakashi.getConverter()
-
-model_size = "large-v3"
-model = WhisperModel(model_size, device="cuda", compute_type="float16")
-
-# Load audio and ASR model
-ctc_segmentation = CTCSegmentation(
-    asr_train_config="exp/asr_train_asr_conformer_raw_jp_char/exp_asr_train_asr_conformer_raw_jp_char_config.yaml",
-    asr_model_file="exp/asr_train_asr_conformer_raw_jp_char/valid.acc.ave_10best.pth",
-    kaldi_style_text=False,
-    fs=sampling_rate,
-)
-print("model load successful")
 
 
 def correct_typo(text: str) -> str:
@@ -121,16 +107,6 @@ def transcribe_audio(waveform, model) -> str:
     return text
 
 
-def text_cleanup(text: str) -> str:
-    # 括弧内の全ての文字を削除
-    text = re.sub(r"[\(（][^)）]*[)）≫≪＞＞＜＜「」（）<<>>]", "", text)
-    # 全ての空白文字を削除
-    text = re.sub(r"\s", "", text)
-    # 《・》「」を削除
-    text = re.sub(r"[《・》「」]", "", text)
-    return text
-
-
 def save_to_dataset(true_text: str, predicted_text: str, threshold: float = 0.1, beg_flag: bool = True) -> bool:
     if beg_flag:
         pass
@@ -170,6 +146,7 @@ def get_timestamps(
             utterances = pickle.load(f)
     else:
         utterances = get_ctc_segmentation(audio_file_path)
+    print(f"total time: {datetime.now() - s2}")
 
     # 一つ一つの字幕とタイムスタンプの組み合わせに対して, 閾値の調整＆大きく外れているものを取り除く
     output_dataset = []
@@ -292,18 +269,6 @@ def get_cer_infer(utt, audio, model):
     return utt.start_seconds, utt.duration, utt.end_seconds, infer_text
 
 
-def get_ctc_segmentation(audio_file_name):
-    # Extract audio and transcriptions
-    print("audio_file_name: ", audio_file_name)
-    utterances = rs.get_utterances(audio_file_name, ctc_segmentation)
-    print("get alignment successful")
-    # Save the utterances object to a file
-    with open("utterances.pkl", "wb") as f:
-        pickle.dump(utterances, f)
-
-    return utterances
-
-
 def single_m2ts_infer(audio_file_path, wav_file_path, output_file_path, csv_file_path, model):
     # m2tsファイルを.mp3に変換
     extract_audio_from_m2ts(audio_file_path, wav_file_path)
@@ -317,9 +282,6 @@ def single_m2ts_infer(audio_file_path, wav_file_path, output_file_path, csv_file
 
 
 def main():
-    model_size = "large-v3"
-    model = WhisperModel(model_size, device="cuda", compute_type="float16")
-
     for file_name in os.listdir(audio_dir):
         print(f"Start eval {file_name}")
         if file_name != "test2.wav":
@@ -339,9 +301,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
     model_size = "large-v3"
-    model = WhisperModel(model_size, device="cuda", compute_type="float16")
+    model = WhisperModel(model_size, device="cuda")
 
     audio_file_path = "audio_data/test.m2ts"
     wav_file_path = f"audio_data/test.wav"
