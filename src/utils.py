@@ -1,4 +1,8 @@
 import pandas as pd
+import pickle
+from espnet2.bin.asr_align import CTCSegmentation
+import re
+import reazonspeech as rs
 import csv
 import subprocess
 
@@ -59,3 +63,34 @@ def create_csv(dataset, file_name):
             writer.writerow(
                 [data.start_seconds, data.end_seconds, data.text]
             )
+
+
+def text_cleanup(text: str) -> str:
+    # 括弧内の全ての文字を削除
+    text = re.sub(r"[\(（][^)）]*[)）≫≪＞＞＜＜！？?!、。「」（）<<>>]", "", text)
+    # 全ての空白文字を削除
+    text = re.sub(r"\s", "", text)
+    # 《・》「」を削除
+    text = re.sub(r"[《・》「」]", "", text)
+    return text
+
+
+def get_ctc_segmentation(audio_file_name):
+    sampling_rate = 16000
+    # Load audio and ASR model
+    ctc_segmentation = CTCSegmentation(
+        asr_train_config="exp/next_inference_model/exp_asr_train_asr_conformer_raw_jp_char_config.yaml",
+        asr_model_file="exp/next_inference_model/valid.acc.ave_3best.pth",
+        kaldi_style_text=False,
+        fs=sampling_rate,
+    )
+    print("model load successful")
+    # Extract audio and transcriptions
+    print("audio_file_name: ", audio_file_name)
+    utterances = rs.get_utterances(audio_file_name, ctc_segmentation)
+    print("get alignment successful")
+    # Save the utterances object to a file
+    with open("utterances.pkl", "wb") as f:
+        pickle.dump(utterances, f)
+
+    return utterances
