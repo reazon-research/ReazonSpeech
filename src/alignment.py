@@ -25,47 +25,33 @@ def interpolate_nans(x, method="nearest"):
 
 PUNKT_ABBREVIATIONS = ["dr", "vs", "mr", "mrs", "prof"]
 LANGUAGES_WITHOUT_SPACES = "ja"
-DEFAULT_ALIGN_MODEL = "jonatasgrosman/wav2vec2-large-xlsr-53-japanese"
 SAMPLE_RATE = 16000
 
 
-def load_align_model(device, model_name=None, model_dir=None):
-    if model_name is None:
-        # use default model
-        model_name = DEFAULT_ALIGN_MODEL
+def load_align_model(device):
+    model_name = "jonatasgrosman/wav2vec2-large-xlsr-53-japanese"
+    try:
+        processor = Wav2Vec2Processor.from_pretrained(model_name)
+        align_model = Wav2Vec2ForCTC.from_pretrained(model_name)
+    except Exception as e:
+        print(e)
+        print(
+            f"Error loading model from huggingface, check https://huggingface.co/models for finetuned wav2vec2.0 models"
+        )
+        raise ValueError(
+            f'The chosen align_model "{model_name}" could not be found in huggingface (https://huggingface.co/models) or torchaudio (https://pytorch.org/audio/stable/pipelines.html#id14)'
+        )
+    align_model = align_model.to(device)
+    labels = processor.tokenizer.get_vocab()
+    align_dictionary = {char.lower(): code for char, code in labels.items()}
 
-    if model_name in torchaudio.pipelines.__all__:
-        pipeline_type = "torchaudio"
-        bundle = torchaudio.pipelines.__dict__[model_name]
-        align_model = bundle.get_model(dl_kwargs={"model_dir": model_dir}).to(device)
-        labels = bundle.get_labels()
-        align_dictionary = {c.lower(): i for i, c in enumerate(labels)}
-    else:
-        try:
-            processor = Wav2Vec2Processor.from_pretrained(model_name)
-            align_model = Wav2Vec2ForCTC.from_pretrained(model_name)
-        except Exception as e:
-            print(e)
-            print(
-                f"Error loading model from huggingface, check https://huggingface.co/models for finetuned wav2vec2.0 models"
-            )
-            raise ValueError(
-                f'The chosen align_model "{model_name}" could not be found in huggingface (https://huggingface.co/models) or torchaudio (https://pytorch.org/audio/stable/pipelines.html#id14)'
-            )
-        pipeline_type = "huggingface"
-        align_model = align_model.to(device)
-        labels = processor.tokenizer.get_vocab()
-        align_dictionary = {char.lower(): code for char, code in processor.tokenizer.get_vocab().items()}
-
-    align_metadata = {"dictionary": align_dictionary, "type": pipeline_type}
-
-    return align_model, align_metadata
+    return align_model, align_dictionary
 
 
 def alignment(
     transcript: Iterable[SingleSegment],
     model: torch.nn.Module,
-    align_model_metadata: dict,
+    align_dictionary: dict,
     audio,
     device: str,
     interpolate_method: str = "nearest",
@@ -83,8 +69,7 @@ def alignment(
 
     MAX_DURATION = audio.shape[1] / SAMPLE_RATE
 
-    model_dictionary = align_model_metadata["dictionary"]
-    model_type = align_model_metadata["type"]
+    model_dictionary = align_dictionary
 
     # 1. Preprocess to keep only characters in dictionary
     total_segments = len(transcript)
@@ -178,12 +163,7 @@ def alignment(
             lengths = None
 
         with torch.inference_mode():
-            if model_type == "torchaudio":
-                emissions, _ = model(waveform_segment.to(device), lengths=lengths)
-            elif model_type == "huggingface":
-                emissions = model(waveform_segment.to(device)).logits
-            else:
-                raise NotImplementedError(f"Align model of type {model_type} not supported.")
+            emissions = model(waveform_segment.to(device)).logits
             emissions = torch.log_softmax(emissions, dim=-1)
 
         emission = emissions[0].cpu().detach()
@@ -441,7 +421,7 @@ def alignments(wav_file_path, output_audio_file_path, csv_file_path, utt=False) 
     audio, _ = librosa.load(wav_file_path, sr=16000)
     print(f"librosa load: {datetime.now() - s2}")
 
-    model, align_model_metadata = load_align_model(device="cpu", model_name=DEFAULT_ALIGN_MODEL)
+    model, align_dictionary = load_align_model(device="cpu")
 
     if utt:
         # Load the utterances object from the file
@@ -460,7 +440,7 @@ def alignments(wav_file_path, output_audio_file_path, csv_file_path, utt=False) 
         transcript.append(align)
     print('start alignment')
     s3 = datetime.now()
-    aligns = alignment(transcript, model, align_model_metadata, audio, device="cpu")
+    aligns = alignment(transcript, model, align_dictionary, audio, device="cpu")
     print(f'alignment successful: {datetime.now() - s3}')
 
     # 一つ一つの字幕とタイムスタンプの組み合わせに対して, 閾値の調整＆大きく外れているものを取り除く
