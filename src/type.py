@@ -5,15 +5,18 @@ class SingleWordSegment(TypedDict):
     """
     A single word of a speech.
     """
+
     word: str
     start_seconds: float
     end_seconds: float
     score: float
 
+
 class SingleCharSegment(TypedDict):
     """
     A single char of a speech.
     """
+
     char: str
     start_seconds: float
     end_seconds: float

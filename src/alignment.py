@@ -22,7 +22,7 @@ def interpolate_nans(x, method="nearest"):
         return x.ffill().bfill()
 
 
-def load_align_model(device):
+def load_align_model():
     model_name = "jonatasgrosman/wav2vec2-large-xlsr-53-japanese"
     try:
         processor = Wav2Vec2Processor.from_pretrained(model_name)
@@ -35,7 +35,7 @@ def load_align_model(device):
         raise ValueError(
             f'The chosen align_model "{model_name}" could not be found in huggingface (https://huggingface.co/models) or torchaudio (https://pytorch.org/audio/stable/pipelines.html#id14)'
         )
-    align_model = align_model.to(device)
+    align_model = align_model.to(device="auto")
     labels = processor.tokenizer.get_vocab()
     align_dictionary = {char.lower(): code for char, code in labels.items()}
 
@@ -417,7 +417,7 @@ def alignments(wav_file_path, output_audio_file_path, csv_file_path, utt=False) 
     audio, _ = librosa.load(wav_file_path, sr=16000)
     print(f"librosa load: {datetime.now() - s2}")
 
-    model, align_dictionary = load_align_model(device="cpu")
+    model, align_dictionary = load_align_model()
 
     if utt:
         # Load the utterances object from the file
