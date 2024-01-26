@@ -7,7 +7,6 @@ import pickle
 import pandas as pd
 from typing import Iterable, List
 import torch
-import torchaudio
 from dataclasses import dataclass
 from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
 
@@ -21,11 +20,6 @@ def interpolate_nans(x, method="nearest"):
         return x.interpolate(method=method).ffill().bfill()
     else:
         return x.ffill().bfill()
-
-
-PUNKT_ABBREVIATIONS = ["dr", "vs", "mr", "mrs", "prof"]
-LANGUAGES_WITHOUT_SPACES = "ja"
-SAMPLE_RATE = 16000
 
 
 def load_align_model(device):
@@ -67,6 +61,8 @@ def alignment(
     if len(audio.shape) == 1:
         audio = audio.unsqueeze(0)
 
+    PUNKT_ABBREVIATIONS = ["dr", "vs", "mr", "mrs", "prof"]
+    SAMPLE_RATE = 16000
     MAX_DURATION = audio.shape[1] / SAMPLE_RATE
 
     model_dictionary = align_dictionary
@@ -438,10 +434,10 @@ def alignments(wav_file_path, output_audio_file_path, csv_file_path, utt=False) 
             "text": text_cleanup(utt.text),
         }
         transcript.append(align)
-    print('start alignment')
+    print("start alignment")
     s3 = datetime.now()
     aligns = alignment(transcript, model, align_dictionary, audio, device="cpu")
-    print(f'alignment successful: {datetime.now() - s3}')
+    print(f"alignment successful: {datetime.now() - s3}")
 
     # 一つ一つの字幕とタイムスタンプの組み合わせに対して, 閾値の調整＆大きく外れているものを取り除く
     output_dataset = []
@@ -470,9 +466,7 @@ def alignments(wav_file_path, output_audio_file_path, csv_file_path, utt=False) 
                     if bf_is_created and bf_end_seconds > align["start_seconds"]:
                         bf_end_seconds = align["start_seconds"] - 0.1
                         whisper_audio = audio[int(bf_start_seconds * 16000) : int(bf_end_seconds * 16000)]
-                        scipy.io.wavfile.write(
-                            bf_output_file_path, 16000, whisper_audio
-                        )
+                        scipy.io.wavfile.write(bf_output_file_path, 16000, whisper_audio)
                         output_dataset[-1].end_seconds = bf_end_seconds
                 break
         for words_dict in align["words"][::-1]:
@@ -484,9 +478,7 @@ def alignments(wav_file_path, output_audio_file_path, csv_file_path, utt=False) 
         # データとして使うか判定&保存
         if is_created:
             whisper_audio = audio[int(align["start_seconds"] * 16000) : int((align["end_seconds"] + 0.5) * 16000)]
-            scipy.io.wavfile.write(
-                output_file_path, 16000, whisper_audio
-            )
+            scipy.io.wavfile.write(output_file_path, 16000, whisper_audio)
             utt.start_seconds = align["start_seconds"]
             utt.end_seconds = align["end_seconds"]
             output_dataset.append(utt)
