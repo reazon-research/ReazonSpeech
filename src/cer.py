@@ -302,10 +302,10 @@ def main():
 
 if __name__ == "__main__":
     model_size = "large-v3"
-    model = WhisperModel(model_size, device="cuda")
+    model = WhisperModel(model_size, device="auto")
 
     audio_file_path = "audio_data/test.m2ts"
     wav_file_path = f"audio_data/test.wav"
     output_file_path = "output/ReazonSpeech_cer_data/test/"
     csv_file_path = f"output/dataset/reazonspeech_cer_data/test.csv"
-    get_timestamps(wav_file_path, output_file_path, csv_file_path, model)
+    get_timestamps(audio_file_path, wav_file_path, output_file_path, csv_file_path, whisper_model=model)
