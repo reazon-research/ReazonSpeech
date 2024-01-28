@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reazonspeech-espnet-asr"
+version = "2.0.0"
+dependencies = [
+    "numpy",
+    "librosa",
+    "soundfile",
+    "torch",
+    "ctc-segmentation",
+    "espnet",
+    "espnet_model_zoo @ git+https://github.com/espnet/espnet_model_zoo",
+]
+
+[tool.setuptools.package-dir]
+"reazonspeech.espnet.asr" = "src"
+
+[project.scripts]
+reazonspeech-espnet-asr = "reazonspeech.espnet.asr.cli:main"
