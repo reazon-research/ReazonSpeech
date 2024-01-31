@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
 
 from nltk.tokenize.punkt import PunktSentenceTokenizer, PunktParameters
-from utils import create_csv, get_ctc_segmentation, text_cleanup
+from utils import create_csv, get_ctc_segmentation, text_cleanup, extract_audio_from_m2ts
 from type import SingleSegment, SingleAlignedSegment, SingleWordSegment
 
 
@@ -35,7 +35,7 @@ def load_align_model():
         raise ValueError(
             f'The chosen align_model "{model_name}" could not be found in huggingface (https://huggingface.co/models) or torchaudio (https://pytorch.org/audio/stable/pipelines.html#id14)'
         )
-    align_model = align_model.to(device="auto")
+    align_model = align_model.to(device="cpu")
     labels = processor.tokenizer.get_vocab()
     align_dictionary = {char.lower(): code for char, code in labels.items()}
 
@@ -455,6 +455,8 @@ def alignments(wav_file_path, output_audio_file_path, csv_file_path, utt=False) 
         # 閾値調整
         if len(utt.text) > 70:
             continue
+        if len(align["words"]) < 3:
+            continue
 
         # wav2vecを使った閾値調整
         for words_dict in align["words"]:
@@ -498,8 +500,16 @@ def alignments(wav_file_path, output_audio_file_path, csv_file_path, utt=False) 
 
 
 if __name__ == "__main__":
+    """
     audio_file_path = "audio_data/test.m2ts"
     wav_file_path = f"audio_data/test.wav"
     output_file_path = "output/ReazonSpeech_wav2vec_data/test/"
     csv_file_path = f"output/dataset/reazonspeech_wav2vec_data/test.csv"
+    """
+    audio_file_path = "audio_data/v0_tbs_2024-1-27_1706331600.m2ts"
+    wav_file_path = f"audio_data/v0_tbs_2024-1-27_1706331600.wav"
+    output_file_path = "output/ReazonSpeech_wav2vec_data/v0_tbs_2024-1-27_1706331600/"
+    csv_file_path = f"output/dataset/reazonspeech_wav2vec_data/v0_tbs_2024-1-27_1706331600.csv"
+    if not os.path.exists(wav_file_path):
+        extract_audio_from_m2ts(audio_file_path, wav_file_path)
     alignments(wav_file_path, output_file_path, csv_file_path, utt=False)
