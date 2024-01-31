@@ -35,9 +35,10 @@ import warnings
 import librosa
 from .transcribe import transcribe, load_default_model, TranscribeConfig
 
-#==============
+# ==============
 # Format Writer
-#==============
+# ==============
+
 
 class VTTWriter:
     """WebVTT (Web Video Text Tracks) is a standard caption format defined
@@ -47,7 +48,7 @@ class VTTWriter:
     See also: https://www.w3.org/TR/webvtt1/
     """
 
-    ext = 'vtt'
+    ext = "vtt"
 
     @staticmethod
     def _format_time(seconds):
@@ -65,6 +66,7 @@ class VTTWriter:
         end = self._format_time(caption.end_seconds)
         file.write("%s --> %s\n%s\n\n" % (start, end, caption.text))
 
+
 class SRTWriter:
     """SRT is a subtitle format commonly used by desktop programs. It was
     originally developed by a Windows program SubRip.
@@ -72,7 +74,7 @@ class SRTWriter:
     See also: https://www.matroska.org/technical/subtitles.html#srt-subtitles
     """
 
-    ext = 'srt'
+    ext = "srt"
 
     @staticmethod
     def _format_time(seconds):
@@ -91,6 +93,7 @@ class SRTWriter:
         end = self._format_time(caption.end_seconds)
         file.write("%i\n%s --> %s\n%s\n\n" % (self.index, start, end, caption.text))
 
+
 class ASSWriter:
     """ASS is another common format among desktop apps. It was developed
     by Advanced Sub Station Alpha, and can be used to burn subtitles
@@ -100,7 +103,7 @@ class ASSWriter:
     See also: https://trac.ffmpeg.org/wiki/HowToBurnSubtitlesIntoVideo
     """
 
-    ext = 'ass'
+    ext = "ass"
 
     @staticmethod
     def _format_time(seconds):
@@ -111,7 +114,8 @@ class ASSWriter:
         return "%i:%02i:%02i.%02i" % (h, m, s, cs)
 
     def header(self, file):
-        file.write("""\
+        file.write(
+            """\
 [Script Info]
 ScriptType: v4.00+
 Collisions: Normal
@@ -121,31 +125,37 @@ Timer: 100.0000
 Style: Default,Arial,16,&Hffffff,&Hffffff,&H0,&H0,0,0,0,0,100,100,0,0,1,1,0,2,10,10,10,0
 
 [Events]
-""")
+"""
+        )
 
     def caption(self, file, caption):
         start = self._format_time(caption.start_seconds)
         end = self._format_time(caption.end_seconds)
         file.write("Dialogue: 0,%s,%s,Default,,0,0,0,,%s\n" % (start, end, caption.text))
 
+
 class JSONWriter:
 
-    ext = 'json'
+    ext = "json"
 
     def header(self, file):
         return
 
     def caption(self, file, caption):
-        line = json.dumps({
-            "start_seconds": round(caption.start_seconds, 3),
-            "end_seconds": round(caption.end_seconds, 3),
-            "text": caption.text
-        }, ensure_ascii=False)
+        line = json.dumps(
+            {
+                "start_seconds": round(caption.start_seconds, 3),
+                "end_seconds": round(caption.end_seconds, 3),
+                "text": caption.text,
+            },
+            ensure_ascii=False,
+        )
         file.write("%s\n" % line)
+
 
 class TSVWriter:
 
-    ext = 'tsv'
+    ext = "tsv"
 
     def header(self, file):
         file.write("start_seconds\tend_seconds\ttext\n")
@@ -154,14 +164,16 @@ class TSVWriter:
         file.write("%.3f\t%.3f\t%s\n" % (caption.start_seconds, caption.end_seconds, caption.text))
 
 
-#======
+# ======
 # Main
-#======
+# ======
+
 
 def get_writer(ext):
     for cls in (VTTWriter, SRTWriter, ASSWriter, JSONWriter, TSVWriter):
         if cls.ext == ext:
             return cls()
+
 
 def get_default_writer(file):
     # Guess an appropriate format from the file name
@@ -173,14 +185,24 @@ def get_default_writer(file):
     # Default to JSON
     return JSONWriter()
 
+
 def show_usage(file):
     print(__doc__, file=file)
+
 
 def main():
     outpath = None
     outext = None
 
-    opts, args = getopt.getopt(sys.argv[1:], "ho:", ("help", "output=", "to=",))
+    opts, args = getopt.getopt(
+        sys.argv[1:],
+        "ho:",
+        (
+            "help",
+            "output=",
+            "to=",
+        ),
+    )
     for k, v in opts:
         if k in ("-h", "--help"):
             show_usage(sys.stdout)
@@ -191,7 +213,7 @@ def main():
             outext = v
 
     if outpath is not None:
-        outfile = open(outpath, 'w')
+        outfile = open(outpath, "w")
     else:
         outfile = sys.stdout
 
@@ -218,9 +240,9 @@ def main():
     speech2text = load_default_model()
 
     # Prepare progress bar
-    pbar = tqdm.tqdm(total=int(len(audio) / config.samplerate),
-                     unit='s', desc='Transcribing',
-                     disable=outfile.isatty())
+    pbar = tqdm.tqdm(
+        total=int(len(audio) / config.samplerate), unit="s", desc="Transcribing", disable=outfile.isatty()
+    )
 
     # Transcribe audio
     writer.header(outfile)
@@ -232,6 +254,7 @@ def main():
 
     outfile.close()
     pbar.close()
+
 
 if __name__ == "__main__":
     sys.exit(main())

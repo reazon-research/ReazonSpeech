@@ -3,9 +3,10 @@ import copy
 import spacy
 from .interface import Caption
 
-__all__ = "build_sentences",
+__all__ = ("build_sentences",)
 
 _SPECIALS = {ord(x): "" for x in "…〜＜＞♬:→　"}
+
 
 def _cleanup(s):
     """Remove special characters to help sentence splitter"""
@@ -16,11 +17,13 @@ def _cleanup(s):
     s = re.sub(r"\s", "", s)
     return s.translate(_SPECIALS)
 
+
 def _merge(start, end, sentence):
     caption = copy.copy(start)
     caption.text = sentence
     caption.end_seconds = end.end_seconds
     return caption
+
 
 def build_sentences(captions):
     """Reformat captions into sentences
@@ -56,5 +59,5 @@ def build_sentences(captions):
         sentence = str(sentence)
         start, end = timeline[0], timeline[len(sentence) - 1]
         ret.append(_merge(start, end, sentence))
-        timeline = timeline[len(sentence):]
+        timeline = timeline[len(sentence) :]
     return ret

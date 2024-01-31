@@ -11,6 +11,7 @@ __all__ = "transcribe", "load_default_model"
 # ASR Utils
 # ---------
 
+
 def _ctc_decode(audio, speech2text):
     """Get character probabilities per frame using CTC network"""
 
@@ -28,6 +29,7 @@ def _ctc_decode(audio, speech2text):
     lpz = speech2text.asr_model.ctc.softmax(enc)
     return lpz.detach().squeeze(0).cpu().numpy()
 
+
 def _find_blank(audio, speech2text, threshold=0.98):
     """Find no-speech segment in audio stream.
 
@@ -37,7 +39,7 @@ def _find_blank(audio, speech2text, threshold=0.98):
 
     See also: arXiv:2002.00551
     """
-    Blank = collections.namedtuple('Blank', ['start', 'end'])
+    Blank = collections.namedtuple("Blank", ["start", "end"])
     blank_id = speech2text.asr_model.blank_id
     nsamples = len(audio)
 
@@ -59,19 +61,20 @@ def _find_blank(audio, speech2text, threshold=0.98):
 
     return max(blanks, key=lambda b: b.end - b.start)
 
+
 def _get_timings(text, audio, speech2text):
     """Compute playback timing of each character using CTC segmentation"""
     lpz = _ctc_decode(audio, speech2text)
 
     opt = ctc.CtcSegmentationParameters(
-        index_duration = len(audio) / (lpz.shape[0] + 1),
-        char_list = speech2text.asr_model.token_list[:-1]
+        index_duration=len(audio) / (lpz.shape[0] + 1), char_list=speech2text.asr_model.token_list[:-1]
     )
     matrix, indices = ctc.prepare_text(opt, [text])
     timings = ctc.ctc_segmentation(opt, lpz, matrix)[0]
 
     # "+1" to skip a preceding blank character.
-    return timings[indices[0]+1:indices[1]]
+    return timings[indices[0] + 1 : indices[1]]
+
 
 def _split_text(asr, audio, speech2text):
     """Split text according to speech boundaries.
@@ -92,7 +95,7 @@ def _split_text(asr, audio, speech2text):
     # to divide texts (98th longest speech pauses).
     threshold = np.percentile(timings[1:] - timings[:-1], 98, interpolation="nearest")
 
-    text, start, prev = '', timings[0], timings[0]
+    text, start, prev = "", timings[0], timings[0]
     remain = len(asr)
     ret = []
 
@@ -101,7 +104,7 @@ def _split_text(asr, audio, speech2text):
         # the first/last characters.
         if len(text) > 1 and remain > 1 and curr - prev > threshold:
             ret.append((start, curr, text))
-            start, text = curr, ''
+            start, text = curr, ""
         prev = curr
         text += char
         remain -= 1
@@ -109,12 +112,15 @@ def _split_text(asr, audio, speech2text):
         ret.append((start, curr, text))
     return ret
 
+
 # ---------
 # Main API
 # ---------
 
+
 def load_default_model():
     from espnet2.bin.asr_inference import Speech2Text
+
     if torch.cuda.device_count() > 0:
         device = "cuda"
     else:
@@ -124,7 +130,9 @@ def load_default_model():
         ctc_weight=0.3,
         lm_weight=0.3,
         beam_size=20,
-        device=device)
+        device=device,
+    )
+
 
 def transcribe(audio, speech2text=None, config=None):
     """Interface function to transcribe audio data
@@ -154,15 +162,15 @@ def transcribe(audio, speech2text=None, config=None):
         # If the audio data is very long, find out the longest
         # non-speech region and perform decoding up to that point.
         if len(segment) > config.window:
-            blank = _find_blank(segment[:config.window], speech2text, config.blank_threshold)
-            segment = segment[:blank.end]
+            blank = _find_blank(segment[: config.window], speech2text, config.blank_threshold)
+            segment = segment[: blank.end]
 
         asr = speech2text(np.pad(segment, config.padding, mode="constant"))[0][0]
 
         for start, end, text in _split_text(asr, segment, speech2text):
             yield Caption(
-                start_seconds = (pos + start) / config.samplerate,
-                end_seconds = (pos + end) / config.samplerate,
-                text = text,
+                start_seconds=(pos + start) / config.samplerate,
+                end_seconds=(pos + end) / config.samplerate,
+                text=text,
             )
         pos += len(segment)

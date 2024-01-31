@@ -33,7 +33,7 @@ from .encoding import decode_cprofile
 from .interface import Caption
 from dataclasses import dataclass, field
 
-__all__ = "get_captions",
+__all__ = ("get_captions",)
 
 # ---------
 # Constants
@@ -49,19 +49,21 @@ _CLOCK_FREQ = 27000000
 # Parser Utils
 # ------------
 
+
 def _parse_header(packet):
     """Parse MPEG Transport Stream header"""
     return {
-        "sync_byte" : packet[0],
-        "TEI"       : bool(packet[1] & 0x80),
-        "PUSI"      : bool(packet[1] & 0x40),
-        "priority"  : bool(packet[1] & 0x20),
-        "PID"       : (packet[1] & 0x1f) <<8 | packet[2],
-        "TSC"       : (packet[3] & 0xc0),
+        "sync_byte": packet[0],
+        "TEI": bool(packet[1] & 0x80),
+        "PUSI": bool(packet[1] & 0x40),
+        "priority": bool(packet[1] & 0x20),
+        "PID": (packet[1] & 0x1F) << 8 | packet[2],
+        "TSC": (packet[3] & 0xC0),
         "adaptation": bool(packet[3] & 0x20),
-        "payload"   : bool(packet[3] & 0x10),
-        "counter"   : (packet[3] & 0x0f),
+        "payload": bool(packet[3] & 0x10),
+        "counter": (packet[3] & 0x0F),
     }
+
 
 def _parse_pcr(buf):
     """PCR (Program Clock Reference) is a 42 bit counter of
@@ -85,6 +87,7 @@ def _parse_pcr(buf):
     ext = ((b4 & 0x01) << 8) | b5
     return base * 300 + ext
 
+
 def _parse_pts(buf):
     """PTS (Presentation Time Stamp) is a 33-bit counter of
     9000Khz clock.
@@ -103,6 +106,7 @@ def _parse_pts(buf):
     b4 = buf[4] >> 1
     base = (b0 << 30) | (b1 << 22) | (b2 << 15) | (b3 << 7) | b4
     return base * 300
+
 
 def _parse_pat(payload):
     """PAT (Program Association Table) contains a list of programs.
@@ -130,8 +134,8 @@ def _parse_pat(payload):
         return []
 
     # (End of Data) = 3-byte header + N bytes
-    length = (payload[1] & 0x0f) << 8 | payload[2]
-    data = payload[8:3 + length]
+    length = (payload[1] & 0x0F) << 8 | payload[2]
+    data = payload[8 : 3 + length]
 
     # Trim CRC32 at the end
     data = data[:-4]
@@ -139,11 +143,12 @@ def _parse_pat(payload):
     ret = []
     while data:
         program = data[0] << 8 | data[1]
-        pid = (data[2] & 0x1f) << 8 | data[3]
+        pid = (data[2] & 0x1F) << 8 | data[3]
         if program != _PROGRAM_NIT:
             ret.append(pid)
         data = data[4:]
     return ret
+
 
 def _parse_pmt(payload):
     """PMT (Program Mapping Table) records which PID corresponds to
@@ -157,29 +162,30 @@ def _parse_pmt(payload):
         return None
 
     # (End of Data) = 3-byte header + N bytes
-    length = (payload[1] & 0x0f) << 8 | payload[2]
-    data = payload[8: 3 + length]
+    length = (payload[1] & 0x0F) << 8 | payload[2]
+    data = payload[8 : 3 + length]
 
     # Trim CRC32 at the end
     data = data[:-4]
 
     # (Start of Stream) = 4-byte header + N bytes
-    meta_length = (data[2] & 0x0f) << 8 | data[3]
-    stream = data[4 + meta_length:]
+    meta_length = (data[2] & 0x0F) << 8 | data[3]
+    stream = data[4 + meta_length :]
 
     while stream:
         stream_type = stream[0]
-        pid = (stream[1] & 0x1f) << 8 | stream[2]
-        nbytes = (stream[3] & 0x0f) << 8 | stream[4]
+        pid = (stream[1] & 0x1F) << 8 | stream[2]
+        nbytes = (stream[3] & 0x0F) << 8 | stream[4]
 
         if stream_type == 0x06:
-            ptr = stream[5:5 + nbytes]
+            ptr = stream[5 : 5 + nbytes]
             while ptr:
                 if ptr[0] == 0x52 and ptr[2] == 0x87:
                     return pid
-                ptr = ptr[2 + ptr[1]:]
-        stream = stream[5 + nbytes:]
+                ptr = ptr[2 + ptr[1] :]
+        stream = stream[5 + nbytes :]
     return None  # No caption PID
+
 
 def _parse_caption(payload):
     """Extract the caption (and its timestamp) from packetized
@@ -191,28 +197,30 @@ def _parse_caption(payload):
         pts = _parse_pts(payload[9:])
 
     header_length = payload[8]
-    data_length = payload[11 + header_length] & 0x0f
-    data = payload[12 + header_length + data_length:]
+    data_length = payload[11 + header_length] & 0x0F
+    data = payload[12 + header_length + data_length :]
 
-    group_id = (data[0] & 0xfc) >> 2
+    group_id = (data[0] & 0xFC) >> 2
     if group_id in (0x00, 0x20):
-        data = data[7 + data[6] * 5:]
+        data = data[7 + data[6] * 5 :]
     else:
         data = data[6:]
 
     loop_length = (data[0] << 16) | (data[1] << 8) | data[2]
-    data = data[3:3 + loop_length]
+    data = data[3 : 3 + loop_length]
     while data:
         unit = data[1]
         size = (data[2] << 16) | (data[3] << 8) | data[4]
         if unit == 0x20:
-            text += decode_cprofile(data[8:8 + size])
-        data = data[5 + size:]
+            text += decode_cprofile(data[8 : 8 + size])
+        data = data[5 + size :]
     return (pts, text)
+
 
 # --------
 # Main API
 # --------
+
 
 @dataclass
 class _State:
@@ -238,6 +246,7 @@ class _State:
                 ret.append(Caption(start, end, cur[1]))
         return ret
 
+
 def _captions(fp):
     state = _State()
 
@@ -255,7 +264,7 @@ def _captions(fp):
                 state.clock_now = _parse_pcr(packet[6:12])
                 if state.clock_init is None:
                     state.clock_init = state.clock_now
-            payload = packet[4 + (1 + packet[4]):]
+            payload = packet[4 + (1 + packet[4]) :]
         else:
             payload = packet[4:]
 
@@ -277,6 +286,7 @@ def _captions(fp):
                     state.captions.append((pts, text))
     return state.done()
 
+
 def get_captions(path):
     """Read caption from M2TS stream file.
 
@@ -288,5 +298,5 @@ def get_captions(path):
     Returns:
         A list of `Caption` instances.
     """
-    with open(path, 'rb') as fp:
+    with open(path, "rb") as fp:
         return _captions(fp)

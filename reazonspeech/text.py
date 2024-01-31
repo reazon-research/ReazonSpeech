@@ -6,12 +6,14 @@ __all__ = "cer", "normalize"
 #
 # Constants
 
-with open_text(data, 'symbol.txt') as fp:
+with open_text(data, "symbol.txt") as fp:
     _SPECIALS = {ord(c.rstrip("\n")): "" for c in fp}
 
 _HAN2ZEN = str.maketrans(
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-    "ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ０１２３４５６７８９")
+    "ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ０１２３４５６７８９",
+)
+
 
 def _editdist(s, t):
     """A simple implementation of Wagner-Fischer algorithm"""
@@ -31,6 +33,7 @@ def _editdist(s, t):
                 tmp, buf[j] = buf[j], val
     return buf[m]
 
+
 def normalize(text):
     """Trim non-phonatory symbols in the text
 
@@ -41,6 +44,7 @@ def normalize(text):
         A normalized string
     """
     return text.translate(_SPECIALS).translate(_HAN2ZEN)
+
 
 def cer(text, asr):
     """Compute CER (Character Error Rate).

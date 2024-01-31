@@ -1,10 +1,10 @@
 from .utils import load_audio
 from .caption import get_captions
-from .sentence import build_sentences
+from .sentence import _cleanup
 from .interface import Utterance
 from .text import cer, normalize
 
-__all__ = "get_utterances",
+__all__ = ("get_utterances",)
 
 # Live programs have ~25 seconds delay when showing captions.
 # Take a big chunk and refine it using CTCSegmentation.
@@ -14,10 +14,12 @@ _MARGIN = 25
 # See lumaku/ctc-segmentation#10
 _PADDING = 0.1
 
+
 def _slice(buffer, samplerate, start, end):
     start = int(start * samplerate)
     end = int(end * samplerate)
     return buffer[start:end]
+
 
 def _align(buffer, samplerate, caption, ctc_segmentation):
     t0 = max(caption.start_seconds - _MARGIN, 0)
@@ -34,14 +36,17 @@ def _align(buffer, samplerate, caption, ctc_segmentation):
         start = t0 + d0
         end = t0 + d1 + _PADDING
         del aligned
-        return Utterance(buffer=None,
-                         samplerate=samplerate,
-                         duration=None,
-                         start_seconds=start,
-                         end_seconds=end,
-                         text=caption.text,
-                         ctc=score)
+        return Utterance(
+            buffer=None,
+            samplerate=samplerate,
+            duration=None,
+            start_seconds=start,
+            end_seconds=end,
+            text=caption.text,
+            ctc=score,
+        )
     return None
+
 
 def _add_space(utterances):
     for u0, u1 in zip(utterances, utterances[1:]):
@@ -50,8 +55,8 @@ def _add_space(utterances):
         u0.end_seconds += blank
         u1.start_seconds -= blank
 
-def get_utterances(path, ctc_segmentation, speech2text=None,
-                   strategy='optim'):
+
+def get_utterances(path, ctc_segmentation, speech2text=None, strategy="optim"):
     """Extract utterances from MPEG-TS data
 
     This function supports two strategies: "optim" or "lax".
@@ -72,7 +77,9 @@ def get_utterances(path, ctc_segmentation, speech2text=None,
       A list of Utterance objects
     """
     samplerate = int(ctc_segmentation.fs)
-    captions = build_sentences(get_captions(path))
+    captions = get_captions(path)
+    for i, caption in enumerate(captions):
+        captions[i].text = _cleanup(caption.text)
     buffer = load_audio(path, samplerate)
     utterances = []
 
@@ -81,7 +88,7 @@ def get_utterances(path, ctc_segmentation, speech2text=None,
         if utt:
             utterances.append(utt)
 
-    if strategy == 'lax':
+    if strategy == "lax":
         _add_space(utterances)
 
     for utt in utterances:

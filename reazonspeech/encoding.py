@@ -23,6 +23,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+
 def decode_cprofile(buf):
     """Decode c-profile string.
 
@@ -31,7 +32,7 @@ def decode_cprofile(buf):
     """
     text = ""
     while buf:
-        if 0xa0 < buf[0] and buf[0] < 0xff:
+        if 0xA0 < buf[0] and buf[0] < 0xFF:
             try:
                 text += bytes([buf[0], buf[1]]).decode("euc-jp")
             except UnicodeDecodeError:
@@ -41,16 +42,18 @@ def decode_cprofile(buf):
             buf = buf[2:]
         elif 0x80 < buf[0] and buf[0] < 0x87:
             buf = buf[1:]
-        elif buf[0] in (0x0d, 0x0c, 0x20):
+        elif buf[0] in (0x0D, 0x0C, 0x20):
             text += ""
             buf = buf[1:]
         else:
             buf = buf[1:]
     return text
 
+
 def _gaiji(buf):
-    code = (buf[0] & 0x7f) << 8 | (buf[1] & 0x7f)
+    code = (buf[0] & 0x7F) << 8 | (buf[1] & 0x7F)
     return _GAIJI_TABLE.get(code, "")
+
 
 _GAIJI_TABLE = {
     0x7A50: "【HV】",
@@ -86,12 +89,10 @@ _GAIJI_TABLE = {
     0x7A70: "【声】",
     0x7A71: "【吹】",
     0x7A72: "【PPV】",
-
     0x7A60: "■",
     0x7A61: "●",
     0x7A73: "（秘）",
     0x7A74: "ほか",
-
     0x7C21: "→",
     0x7C22: "←",
     0x7C23: "↑",
@@ -183,7 +184,6 @@ _GAIJI_TABLE = {
     0x7C79: "DJ",
     0x7C7A: "[演]",
     0x7C7B: "Fax",
-
     0x7D21: "㈪",
     0x7D22: "㈫",
     0x7D23: "㈬",
@@ -275,7 +275,6 @@ _GAIJI_TABLE = {
     0x7D79: "・",
     0x7D7A: "♬",
     0x7D7B: "☎",
-
     0x7E21: "Ⅰ",
     0x7E22: "Ⅱ",
     0x7E23: "Ⅲ",
@@ -369,7 +368,6 @@ _GAIJI_TABLE = {
     0x7E7B: "⓫",
     0x7E7C: "⓬",
     0x7E7D: "㉛",
-
     0x7521: "㐂",
     0x7522: "亭",
     0x7523: "份",
@@ -464,7 +462,6 @@ _GAIJI_TABLE = {
     0x757C: "禮",
     0x757D: "・",
     0x757E: "・",
-
     0x7621: "・",
     0x7622: "秚",
     0x7623: "稞",
