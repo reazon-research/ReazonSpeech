@@ -2,96 +2,42 @@
 ReazonSpeech
 ============
 
-ReazonSpeech is a toolkit to build audio corpus from Japanese digital
-television stream.
+This repository provides access to the main user tooling of ReazonSpeech project.
 
-Installation
-============
+* https://research.reazon.jp/projects/ReazonSpeech/
 
-Use ``pip`` to install::
+Install
+=======
 
-    $ pip install git+https://github.com/reazon-research/reazonspeech
+.. code:: console
 
-QuickStart
-==========
+   $ git clone https://github.com/reazon-research/ReazonSpeech
+   $ pip install ReazonSpeech/pkg/nemo-asr  # or espnet-oneseg, espnet-asr
 
-Extract captions from stream
-----------------------------
+Packages
+========
 
-Here is the most basic usage of ReazonSpeech:
+`reazonspeech.nemo.asr <pkg/nemo-asr/README.rst>`_
 
-.. code-block:: python
+* Implements a fast, accurate speech recognition based on FastConformer-RNNT.
+* The total number of parameters is 619M. Requires `Nvidia Nemo <https://github.com/NVIDIA/NeMo>`_.
 
-   import reazonspeech as rs
+`reazonspeech.espnet.asr <pkg/espnet-asr/README.rst>`_
 
-   captions = rs.get_captions("test.m2ts")
+* Speech recognition with a Conformer-Transducer model.
+* The total number of parameters is 120M. Requires `ESPnet <https://github.com/espnet/espnet>`_.
 
-Given broadcast data, read_captions() parses and extracts caption data
-from the stream.
+`reazonspeech.espnet.oneseg <pkg/espnet-oneseg/README.rst>`_
 
-.. code-block:: python
-
-    Caption(start_seconds=21.3, end_seconds=25.1, text='こんにちは。正午のニュースです。')
-    Caption(start_seconds=30.3, end_seconds=34.2, text='本日十時に北海道に')
-    Caption(start_seconds=34.2, end_seconds=35.1, text='陸上機が到着しました。')
-
-Each Caption instance corresponds to a packet in the stream. The
-start_seconds/end_seconds fields represent the display timings of the
-caption (counting from the beginning of the stream).
-
-Build sentences from captions
------------------------------
-
-Often a caption packet only contains a part of the original utterance.
-You can use build_sentences() to merge/split captions according to the
-sentence boundaries.
-
-.. code-block:: python
-
-   captions = rs.build_sentences(captions)
-
-This should make the caption data more suitable to ASR tasks.
-
-.. code-block:: python
-
-    Caption(start_seconds=21.3, end_seconds=25.1, text='こんにちは。')
-    Caption(start_seconds=21.3, end_seconds=25.1, text='正午のニュースです。')
-    Caption(start_seconds=30.3, end_seconds=35.1, text='本日十時に北海道に陸上機が到着しました。')
-
-Build audio corpus
-------------------
-
-First, prepare ffmpeg and ESPNet2 model::
-
-    $ sudo apt install ffmpeg
-    $ ln -s /path/to/my-espnet-model/exp
-
-You can create an audio corpus from a M2TS file very easily:
-
-.. code-block:: python
-
-   from espnet2.bin.asr_align import CTCSegmentation
-   import reazonspeech as rs
-
-   # Load audio and ASR model
-   ctc_segmentation = CTCSegmentation(
-       asr_train_config="exp/asr_train/config.yaml",
-       asr_model_file="exp/asr_train/valid.acc.best.pth",
-       kaldi_style_text=False,
-       fs=16000,
-   )
-
-   # Extract audio and transcriptions
-   utterances = rs.get_utterances("test.m2ts", ctc_segmentation)
-
-   rs.save_as_zip(utterances, path="corpus.zip")
+* Provides a set of tools to analyze Japanese "one-segment" TV stream.
+* Use this package to create Japanese audio corpus.
 
 LICENSE
 =======
 
 ::
 
-    Copyright 2022 Reazon Holdings, inc.
+    Copyright 2022-2024 Reazon Holdings, inc.
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
