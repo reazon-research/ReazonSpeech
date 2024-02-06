@@ -1,18 +1,25 @@
 import tempfile
 import dataclasses
+import torch
 from .interface import TranscribeConfig
 from .decode import decode_hypothesis, PAD_SECONDS
 from .audio import audio_to_file, pad_audio, norm_audio
 
-def load_model(device='cuda'):
+def load_model(device=None):
     """Load ReazonSpeech model
 
     Args:
-      device (str): Specify "cuda" or "cpu"
+      device (str): Specify "cuda", "cpu" or "mps"
 
     Returns:
       nemo.collections.asr.models.EncDecRNNTBPEModel
     """
+    if device is None:
+        if torch.cuda.is_available():
+            device = "cuda"
+        else:
+            device = "cpu"
+
     from nemo.utils import logging
     logging.setLevel(logging.ERROR)
     from nemo.collections.asr.models import EncDecRNNTBPEModel

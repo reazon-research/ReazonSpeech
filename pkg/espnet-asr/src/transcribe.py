@@ -1,5 +1,6 @@
 import tqdm
 import numpy as np
+import torch
 from .audio import norm_audio
 from .interface import TranscribeConfig, TranscribeResult, Segment
 from .ctc import split_text, find_blank
@@ -8,7 +9,7 @@ from .ctc import split_text, find_blank
 WINDOW_SECONDS = 20
 PADDING = (16000, 8000)
 
-def load_model(device="cuda"):
+def load_model(device=None):
     """Load ReazonSpeech model
 
     Args:
@@ -17,6 +18,12 @@ def load_model(device="cuda"):
     Returns:
       espnet2.bin.asr_inference.Speech2Text
     """
+    if device is None:
+        if torch.cuda.is_available():
+            device = "cuda"
+        else:
+            device = "cpu"
+
     from espnet2.bin.asr_inference import Speech2Text
     return Speech2Text.from_pretrained(
         "https://huggingface.co/reazon-research/reazonspeech-espnet-v2",
