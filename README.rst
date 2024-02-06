@@ -17,17 +17,17 @@ Install
 Packages
 ========
 
-`reazonspeech.nemo.asr <pkg/nemo-asr/README.rst>`_
+`reazonspeech.nemo.asr <pkg/nemo-asr>`_
 
 * Implements a fast, accurate speech recognition based on FastConformer-RNNT.
 * The total number of parameters is 619M. Requires `Nvidia Nemo <https://github.com/NVIDIA/NeMo>`_.
 
-`reazonspeech.espnet.asr <pkg/espnet-asr/README.rst>`_
+`reazonspeech.espnet.asr <pkg/espnet-asr>`_
 
 * Speech recognition with a Conformer-Transducer model.
 * The total number of parameters is 120M. Requires `ESPnet <https://github.com/espnet/espnet>`_.
 
-`reazonspeech.espnet.oneseg <pkg/espnet-oneseg/README.rst>`_
+`reazonspeech.espnet.oneseg <pkg/espnet-oneseg>`_
 
 * Provides a set of tools to analyze Japanese "one-segment" TV stream.
 * Use this package to create Japanese audio corpus.
