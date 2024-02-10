@@ -1,7 +1,7 @@
 from .interface import Subword, Segment, TranscribeResult
 
 # Hyper parameters
-PAD_SECONDS = 1.0
+PAD_SECONDS = 0.5
 SECONDS_PER_STEP = 0.08
 SUBWORDS_PER_SEGMENTS = 10
 PHONEMIC_BREAK = 0.5
