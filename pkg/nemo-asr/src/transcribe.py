@@ -9,7 +9,7 @@ def load_model(device=None):
     """Load ReazonSpeech model
 
     Args:
-      device (str): Specify "cuda", "cpu" or "mps"
+      device (str): Specify "cuda" or "cpu"
 
     Returns:
       nemo.collections.asr.models.EncDecRNNTBPEModel
