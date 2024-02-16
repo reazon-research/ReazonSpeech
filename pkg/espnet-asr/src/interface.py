@@ -17,7 +17,7 @@ class Segment:
 @dataclass
 class TranscribeResult:
     text: int
-    segments: list[Segment]
+    segments: list
 
 @dataclass
 class TranscribeConfig:
