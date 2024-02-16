@@ -1,9 +1,10 @@
-import tempfile
+import os
 import dataclasses
 import torch
 from .interface import TranscribeConfig
 from .decode import decode_hypothesis, PAD_SECONDS
 from .audio import audio_to_file, pad_audio, norm_audio
+from .fs import create_tempfile
 
 def load_model(device=None):
     """Load ReazonSpeech model
@@ -44,8 +45,11 @@ def transcribe(model, audio, config=None):
 
     # TODO Study NeMo's transcribe() function and make it
     # possible to pass waveforms on memory.
-    with tempfile.NamedTemporaryFile() as tmpf:
+    with create_tempfile() as tmpf:
         audio_to_file(tmpf, audio)
+
+        if os.name == 'nt':
+            tmpf.close()
 
         hyp, _ = model.transcribe(
             [tmpf.name],
