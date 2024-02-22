@@ -54,7 +54,7 @@ def decode_hypothesis(model, hyp):
         end = find_end_of_segment(subwords, start)
         segments.append(Segment(
             start_seconds=subwords[start].seconds,
-            end_seconds=subwords[end].seconds,
+            end_seconds=subwords[end].seconds + SECONDS_PER_STEP,
             text=model.tokenizer.ids_to_text(y_sequence[start:end+1]),
         ))
         start = end + 1
