@@ -59,4 +59,9 @@ def transcribe(model, audio, config=None):
         )
         hyp = hyp[0]
 
-    return decode_hypothesis(model, hyp)
+    ret = decode_hypothesis(model, hyp)
+
+    if config.raw_hypothesis:
+        ret.hypothesis = hyp
+
+    return ret

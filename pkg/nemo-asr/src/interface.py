@@ -28,7 +28,9 @@ class TranscribeResult:
     text: str
     subwords: list[Subword]
     segments: list[Segment]
+    hypothesis: object = None
 
 @dataclass
 class TranscribeConfig:
     verbose: bool = True
+    raw_hypothesis: bool = False
