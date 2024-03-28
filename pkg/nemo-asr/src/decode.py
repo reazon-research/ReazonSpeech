@@ -48,6 +48,10 @@ def decode_hypothesis(model, hyp):
             seconds=max(SECONDS_PER_STEP * (step - idx - 1) - PAD_SECONDS, 0)
         ))
 
+    # In SentncePiece, whitespace is considered as a normal token and
+    # represented with a meta character (U+2581). Trim them.
+    subwords = [x for x in subwords if x.token]
+
     segments = []
     start = 0
     while start < len(subwords):
@@ -55,7 +59,7 @@ def decode_hypothesis(model, hyp):
         segments.append(Segment(
             start_seconds=subwords[start].seconds,
             end_seconds=subwords[end].seconds + SECONDS_PER_STEP,
-            text=model.tokenizer.ids_to_text(y_sequence[start:end+1]),
+            text="".join(x.token for x in subwords[start:end+1]),
         ))
         start = end + 1
 
