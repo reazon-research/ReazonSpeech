@@ -52,7 +52,7 @@ def decode_hypothesis(model, hyp):
             token=model.tokenizer.ids_to_text([token_id]),
             seconds=max(SECONDS_PER_STEP * (step - idx - 1) - PAD_SECONDS, 0)
         ))
-    for idx in skip_indices:
+    for idx in reversed(skip_indices):  # remove "_" tokens
         y_sequence.pop(idx)
 
     segments = []
