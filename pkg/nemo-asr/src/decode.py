@@ -9,6 +9,7 @@ PHONEMIC_BREAK = 0.5
 TOKEN_EOS = {'。', '?', '!'}
 TOKEN_COMMA = {'、', ','}
 TOKEN_PUNC = TOKEN_EOS | TOKEN_COMMA
+SKIP_TOKEN_IDS = {2}
 
 def find_end_of_segment(subwords, start):
     """Heuristics to identify speech boundaries"""
@@ -42,6 +43,8 @@ def decode_hypothesis(model, hyp):
 
     subwords = []
     for idx, (token_id, step) in enumerate(zip(y_sequence, hyp.timestep)):
+        if token_id in SKIP_TOKEN_IDS:  # skip "_" token
+            continue
         subwords.append(Subword(
             token_id=token_id,
             token=model.tokenizer.ids_to_text([token_id]),
