@@ -38,18 +38,22 @@ def decode_hypothesis(model, hyp):
     """
     # NeMo prepends a blank token to y_sequence with ALSD.
     # Trim that artifact token.
-    y_sequence = hyp.y_sequence.tolist()[1:]
+    y_sequence: list = hyp.y_sequence.tolist()[1:]
     text = model.tokenizer.ids_to_text(y_sequence)
 
     subwords = []
+    skip_indices = []
     for idx, (token_id, step) in enumerate(zip(y_sequence, hyp.timestep)):
         if token_id in SKIP_TOKEN_IDS:  # skip "_" token
+            skip_indices.append(idx)
             continue
         subwords.append(Subword(
             token_id=token_id,
             token=model.tokenizer.ids_to_text([token_id]),
             seconds=max(SECONDS_PER_STEP * (step - idx - 1) - PAD_SECONDS, 0)
         ))
+    for idx in skip_indices:
+        y_sequence.pop(idx)
 
     segments = []
     start = 0
