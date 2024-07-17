@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reazonspeech-k2-asr"
+version = "2.0.1"
+dependencies = [
+    "numpy < 2",
+    "librosa",
+    "soundfile",
+    "huggingface_hub",
+]
+
+[tool.setuptools.package-dir]
+"reazonspeech.k2.asr" = "src"
