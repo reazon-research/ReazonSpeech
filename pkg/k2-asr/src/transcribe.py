@@ -1,9 +1,11 @@
 import os
+import warnings
 import sherpa_onnx
 from .interface import TranscribeConfig, TranscribeResult, Subword
 from .audio import audio_to_file, pad_audio, norm_audio
 
 PAD_SECONDS = 0.9
+TOO_LONG_SECONDS = 30.0
 
 def transcribe(model, audio, config=None):
     """Inference audio data using K2 model
@@ -20,6 +22,16 @@ def transcribe(model, audio, config=None):
         config = TranscribeConfig()
 
     audio = pad_audio(norm_audio(audio), PAD_SECONDS)
+
+    # Show warning if a long audio input is detected.
+    duration = audio.waveform.shape[0] / audio.samplerate
+    if duration > TOO_LONG_SECONDS:
+        warnings.warn(
+          f"Passing a long audio input ({duration:.1f}s) is not recommended, "
+          "because K2 will require a large amount of memory. "
+          "Read the upstream discussion for more details: "
+          "https://github.com/k2-fsa/icefall/issues/1680"
+        )
 
     stream = model.create_stream()
     stream.accept_waveform(audio.samplerate, audio.waveform)
