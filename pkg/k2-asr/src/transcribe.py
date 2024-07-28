@@ -50,6 +50,6 @@ def transcribe(model, audio, config=None):
 
     subwords = []
     for t, s in zip(stream.result.tokens, stream.result.timestamps):
-        subwords.append(Subword(t, s))
+        subwords.append(Subword(token=t, seconds=s))
 
     return TranscribeResult(stream.result.text, subwords)
