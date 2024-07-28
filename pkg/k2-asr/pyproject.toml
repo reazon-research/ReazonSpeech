@@ -10,6 +10,7 @@ dependencies = [
     "librosa",
     "soundfile",
     "huggingface_hub",
+    "sherpa-onnx",
 ]
 
 [tool.setuptools.package-dir]
