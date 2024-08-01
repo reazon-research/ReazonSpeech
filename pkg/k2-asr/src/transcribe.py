@@ -1,31 +1,11 @@
 import os
+import warnings
 import sherpa_onnx
 from .interface import TranscribeConfig, TranscribeResult, Subword
 from .audio import audio_to_file, pad_audio, norm_audio
 
 PAD_SECONDS = 0.9
-
-def load_model(device='cpu'):
-    """Load ReazonSpeech model
-
-    Returns:
-      sherpa_onnx
-    """
-    from huggingface_hub import snapshot_download
-    repo_url = 'reazon-research/reazonspeech-zipformer-large'
-    local_path = snapshot_download(repo_url)
-
-    return sherpa_onnx.OfflineRecognizer.from_transducer(
-        tokens=local_path + "/tokens.txt",
-        encoder=local_path + "/encoder-epoch-99-avg-1.onnx",
-        decoder=local_path + "/decoder-epoch-99-avg-1.onnx",
-        joiner=local_path + "/joiner-epoch-99-avg-1.onnx",
-        num_threads=1,
-        sample_rate=16000,
-        feature_dim=80,
-        decoding_method="greedy_search",
-        provider=device,
-    )
+TOO_LONG_SECONDS = 30.0
 
 def transcribe(model, audio, config=None):
     """Inference audio data using K2 model
@@ -43,6 +23,16 @@ def transcribe(model, audio, config=None):
 
     audio = pad_audio(norm_audio(audio), PAD_SECONDS)
 
+    # Show warning if a long audio input is detected.
+    duration = audio.waveform.shape[0] / audio.samplerate
+    if duration > TOO_LONG_SECONDS:
+        warnings.warn(
+          f"Passing a long audio input ({duration:.1f}s) is not recommended, "
+          "because K2 will require a large amount of memory. "
+          "Read the upstream discussion for more details: "
+          "https://github.com/k2-fsa/icefall/issues/1680"
+        )
+
     stream = model.create_stream()
     stream.accept_waveform(audio.samplerate, audio.waveform)
 
@@ -50,6 +40,6 @@ def transcribe(model, audio, config=None):
 
     subwords = []
     for t, s in zip(stream.result.tokens, stream.result.timestamps):
-        subwords.append(Subword(t, s))
+        subwords.append(Subword(token=t, seconds=s))
 
     return TranscribeResult(stream.result.text, subwords)
