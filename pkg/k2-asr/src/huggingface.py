@@ -22,6 +22,12 @@ HF_REPO_FILES = {
         "encoder": "encoder-epoch-99-avg-1.int8.onnx",
         "decoder": "decoder-epoch-99-avg-1.int8.onnx",
         "joiner": "joiner-epoch-99-avg-1.int8.onnx",
+    },
+    "int8-fp32": {
+        "tokens": "tokens.txt",
+        "encoder": "encoder-epoch-99-avg-1.int8.onnx",
+        "decoder": "decoder-epoch-99-avg-1.onnx",
+        "joiner": "joiner-epoch-99-avg-1.int8.onnx",
     }
 }
 
@@ -30,7 +36,7 @@ def load_model(device="cpu", precision="fp32"):
 
     Args:
       device (str): "cpu", "cuda" or "coreml"
-      precision (str): Whether to load quantized model ("fp32" or "int8")
+      precision (str): Whether to load quantized model ("fp32", "int8" or "int8-fp32")
 
     Returns:
       sherpa_onnx.OfflineRecognizer
