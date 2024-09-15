@@ -6,7 +6,9 @@ build-backend = "setuptools.build_meta"
 name = "reazonspeech-nemo-asr"
 version = "2.1.0"
 dependencies = [
-    "numpy",
+    "numpy<2.0.0",
+    "huggingface-hub<=0.23.0",
+    "transformers<=4.33.3",
     "librosa",
     "soundfile",
     "torch",
