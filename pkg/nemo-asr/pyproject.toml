@@ -8,6 +8,7 @@ version = "2.1.0"
 dependencies = [
     "numpy",
     "librosa",
+    "huggingface_hub < 0.24",
     "soundfile",
     "torch",
     "nemo_toolkit[asr]",
