@@ -5,3 +5,5 @@ __pycache__
 *.flac
 *.egg-info
 *.zip
+venv/
+/pkg/k2-asr/build/
