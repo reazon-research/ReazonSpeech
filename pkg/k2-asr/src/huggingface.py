@@ -19,6 +19,7 @@ def load_model(device="cpu", precision="fp32", language="ja"):
     Args:
       device (str): "cpu", "cuda" or "coreml"
       precision (str): Whether to load quantized model ("fp32", "int8" or "int8-fp32")
+      language (str): Whether to use japanese or bi-lingual model ("ja" or "ja-en")
 
     Returns:
       sherpa_onnx.OfflineRecognizer
@@ -27,9 +28,11 @@ def load_model(device="cpu", precision="fp32", language="ja"):
     if language == "ja":
         hf_repo_id = "reazon-research/reazonspeech-k2-v2"
         epochs = 99
-    elif language == "multi":
+    elif language == "ja-en":
         hf_repo_id = "reazon-research/k2-multi-ja-en"
         epochs = 35
+    else:
+        raise ValueError(f"Unknown language: '{language}'")
 
     hf_repo_files = {
         "fp32": {
