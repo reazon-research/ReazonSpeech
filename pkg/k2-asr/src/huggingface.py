@@ -6,32 +6,14 @@ import sherpa_onnx
 # on Hugging Face Hub. Whenever the HF repo is changed, this
 # file should be updated accordingly.
 #
+# Multi lingual also has precision fp16, but is currently not
+# in use.
+#
 # https://huggingface.co/reazon-research/reazonspeech-k2-v2
+# https://huggingface.co/reazon-research/k2-multi-ja-en
 
-HF_REPO_ID = "reazon-research/reazonspeech-k2-v2"
 
-HF_REPO_FILES = {
-    "fp32": {
-        "tokens": "tokens.txt",
-        "encoder": "encoder-epoch-99-avg-1.onnx",
-        "decoder": "decoder-epoch-99-avg-1.onnx",
-        "joiner": "joiner-epoch-99-avg-1.onnx",
-    },
-    "int8": {
-        "tokens": "tokens.txt",
-        "encoder": "encoder-epoch-99-avg-1.int8.onnx",
-        "decoder": "decoder-epoch-99-avg-1.int8.onnx",
-        "joiner": "joiner-epoch-99-avg-1.int8.onnx",
-    },
-    "int8-fp32": {
-        "tokens": "tokens.txt",
-        "encoder": "encoder-epoch-99-avg-1.int8.onnx",
-        "decoder": "decoder-epoch-99-avg-1.onnx",
-        "joiner": "joiner-epoch-99-avg-1.int8.onnx",
-    }
-}
-
-def load_model(device="cpu", precision="fp32"):
+def load_model(device="cpu", precision="fp32", language="ja"):
     """Load ReazonSpeech model from Hugging Face
 
     Args:
@@ -41,17 +23,46 @@ def load_model(device="cpu", precision="fp32"):
     Returns:
       sherpa_onnx.OfflineRecognizer
     """
-    if precision not in HF_REPO_FILES:
+
+    if language == "ja":
+        hf_repo_id = "reazon-research/reazonspeech-k2-v2"
+        epochs = 99
+    elif language == "multi":
+        hf_repo_id = "reazon-research/k2-multi-ja-en"
+        epochs = 35
+
+    hf_repo_files = {
+        "fp32": {
+            "tokens": "tokens.txt",
+            "encoder": f"encoder-epoch-{epochs}-avg-1.onnx",
+            "decoder": f"decoder-epoch-{epochs}-avg-1.onnx",
+            "joiner": f"joiner-epoch-{epochs}-avg-1.onnx",
+        },
+        "int8": {
+            "tokens": "tokens.txt",
+            "encoder": f"encoder-epoch-{epochs}-avg-1.int8.onnx",
+            "decoder": f"decoder-epoch-{epochs}-avg-1.int8.onnx",
+            "joiner": f"joiner-epoch-{epochs}-avg-1.int8.onnx",
+        },
+        "int8-fp32": {
+            "tokens": "tokens.txt",
+            "encoder": f"encoder-epoch-{epochs}-avg-1.int8.onnx",
+            "decoder": f"decoder-epoch-{epochs}-avg-1.onnx",
+            "joiner": f"joiner-epoch-{epochs}-avg-1.int8.onnx",
+        }
+    }
+
+    if precision not in hf_repo_files:
         raise ValueError("Unknown precision: '%s'" % precision)
 
-    files = HF_REPO_FILES[precision]
+    files = hf_repo_files[precision]
 
     # If the model is found in the local cache, do not connect
     # to Hugging Face.
     try:
-        basedir = hf.snapshot_download(HF_REPO_ID, local_files_only=True)
+        basedir = hf.snapshot_download(hf_repo_id, local_files_only=True)
     except hf.utils.LocalEntryNotFoundError:
-        basedir = hf.snapshot_download(HF_REPO_ID)
+        basedir = hf.snapshot_download(hf_repo_id)
 
     return sherpa_onnx.OfflineRecognizer.from_transducer(
         tokens=os.path.join(basedir, files["tokens"]),
