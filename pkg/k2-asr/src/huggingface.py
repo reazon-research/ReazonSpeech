@@ -10,7 +10,7 @@ import sherpa_onnx
 # in use.
 #
 # https://huggingface.co/reazon-research/reazonspeech-k2-v2
-# https://huggingface.co/reazon-research/k2-multi-ja-en
+# https://huggingface.co/reazon-research/reazonspeech-k2-v2-ja-en
 
 
 def load_model(device="cpu", precision="fp32", language="ja"):
@@ -29,7 +29,7 @@ def load_model(device="cpu", precision="fp32", language="ja"):
         hf_repo_id = "reazon-research/reazonspeech-k2-v2"
         epochs = 99
     elif language == "ja-en":
-        hf_repo_id = "reazon-research/k2-multi-ja-en"
+        hf_repo_id = "reazon-research/reazonspeech-k2-v2-ja-en"
         epochs = 35
     else:
         raise ValueError(f"Unknown language: '{language}'")
