@@ -10,7 +10,7 @@ dependencies = [
     "librosa",
     "soundfile",
     "torch",
-    "nemo_toolkit[asr]",
+    "nemo_toolkit[asr] < 2.2",
 ]
 
 [tool.setuptools.package-dir]
