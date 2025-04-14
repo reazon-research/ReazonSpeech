@@ -124,7 +124,8 @@ def load_default_model():
         ctc_weight=0.3,
         lm_weight=0.3,
         beam_size=20,
-        device=device)
+        device=device,
+        resume_download=True)
 
 def transcribe(audio, speech2text=None, config=None):
     """Interface function to transcribe audio data
