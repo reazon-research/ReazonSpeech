@@ -25,8 +25,7 @@ def load_model(device=None):
     logging.setLevel(logging.ERROR)
     from nemo.collections.asr.models import EncDecRNNTBPEModel
     return EncDecRNNTBPEModel.from_pretrained('reazon-research/reazonspeech-nemo-v2',
-                                              map_location=device,
-                                              resume_download=True)
+                                              map_location=device)
 
 def transcribe(model, audio, config=None):
     """Inference audio data using NeMo model

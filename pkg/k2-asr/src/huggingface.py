@@ -63,9 +63,9 @@ def load_model(device="cpu", precision="fp32", language="ja"):
     # If the model is found in the local cache, do not connect
     # to Hugging Face.
     try:
-        basedir = hf.snapshot_download(hf_repo_id, local_files_only=True, resume_download=True)
+        basedir = hf.snapshot_download(hf_repo_id, local_files_only=True)
     except hf.utils.LocalEntryNotFoundError:
-        basedir = hf.snapshot_download(hf_repo_id, resume_download=True)
+        basedir = hf.snapshot_download(hf_repo_id)
 
     return sherpa_onnx.OfflineRecognizer.from_transducer(
         tokens=os.path.join(basedir, files["tokens"]),
