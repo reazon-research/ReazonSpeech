@@ -11,7 +11,7 @@ import sherpa_onnx
 #
 # https://huggingface.co/reazon-research/reazonspeech-k2-v2
 # https://huggingface.co/reazon-research/reazonspeech-k2-v2-ja-en
-
+# https://huggingface.co/reazon-research/reazonspeech-k2-v2-ja-en-mls
 
 def load_model(device="cpu", precision="fp32", language="ja"):
     """Load ReazonSpeech model from Hugging Face
@@ -19,7 +19,7 @@ def load_model(device="cpu", precision="fp32", language="ja"):
     Args:
       device (str): "cpu", "cuda" or "coreml"
       precision (str): Whether to load quantized model ("fp32", "int8" or "int8-fp32")
-      language (str): Whether to use japanese or bi-lingual model ("ja" or "ja-en")
+      language (str): Whether to use japanese or bi-lingual model ("ja" or "ja-en" or "ja-en-mls-5k") 
 
     Returns:
       sherpa_onnx.OfflineRecognizer
@@ -31,6 +31,9 @@ def load_model(device="cpu", precision="fp32", language="ja"):
     elif language == "ja-en":
         hf_repo_id = "reazon-research/reazonspeech-k2-v2-ja-en"
         epochs = 35
+    elif language = "ja-en-mls-5k":
+        hf_repo_id = "reazon-research/reazonspeech-k2-v2-ja-en-mls"
+        epochs = 24
     else:
         raise ValueError(f"Unknown language: '{language}'")
 

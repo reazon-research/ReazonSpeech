@@ -27,6 +27,7 @@ Packages
 * Next-gen Kaldi model that is very fast and accurate.
 * The total number of parameters is 159M. Requires `sherpa-onnx <https://github.com/k2-fsa/sherpa-onnx>`_.
 * Also contains a bilingual (ja-en) model, which is highly accurate at language detection in bilingual settings of Japanese and English.
+* For development: "ja-en-mls-5k" model trained on 5k hours of ReazonSpeech and MLS English data each
 
 `reazonspeech.espnet.asr <pkg/espnet-asr>`_
 
