@@ -31,7 +31,7 @@ def load_model(device="cpu", precision="fp32", language="ja"):
     elif language == "ja-en":
         hf_repo_id = "reazon-research/reazonspeech-k2-v2-ja-en"
         epochs = 35
-    elif language = "ja-en-mls-5k":
+    elif language == "ja-en-mls-5k":
         hf_repo_id = "reazon-research/reazonspeech-k2-v2-ja-en-mls"
         epochs = 24
     else:
