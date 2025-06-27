@@ -31,7 +31,7 @@ Python interface
   from reazonspeech.k2.asr import load_model, transcribe, audio_from_path
 
   # Load ReazonSpeech model from Hugging Face
-  model = load_model(device="cpu", precision="fp32", language="ja") # or language="ja-en" for bilingual model
+  model = load_model(device="cpu", precision="fp32", language="ja") # or language="ja-en" for bilingual model or "ja-en-mls-5k" for 5k MLS bilingual model 
 
   # Read a local audio file
   audio = audio_from_path("speech.wav")
