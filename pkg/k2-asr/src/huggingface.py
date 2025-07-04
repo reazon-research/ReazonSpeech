@@ -11,7 +11,7 @@ import sherpa_onnx
 #
 # https://huggingface.co/reazon-research/reazonspeech-k2-v2
 # https://huggingface.co/reazon-research/reazonspeech-k2-v2-ja-en
-# https://huggingface.co/reazon-research/reazonspeech-k2-v2-ja-en-mls
+# https://huggingface.co/reazon-research/reazonspeech-k2-v2-ja-en-mls-5k-corrected
 
 def load_model(device="cpu", precision="fp32", language="ja"):
     """Load ReazonSpeech model from Hugging Face
@@ -32,8 +32,8 @@ def load_model(device="cpu", precision="fp32", language="ja"):
         hf_repo_id = "reazon-research/reazonspeech-k2-v2-ja-en"
         epochs = 35
     elif language == "ja-en-mls-5k":
-        hf_repo_id = "reazon-research/reazonspeech-k2-v2-ja-en-mls"
-        epochs = 24
+        hf_repo_id = "reazon-research/reazonspeech-k2-v2-ja-en-mls-5k-corrected"
+        epochs = 21
     else:
         raise ValueError(f"Unknown language: '{language}'")
 
