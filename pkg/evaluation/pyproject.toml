@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools", "Cython"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reazonspeech-evaluation"
+version = "2.1.0"
+dependencies = [
+    "numpy < 2",
+    "editdistance>=0.8.1",
+    "librosa",
+    "soundfile",
+    "datasets==3.6.0",
+    "torchcodec",
+    "num2words>=0.5.14",
+]
+
+[tool.setuptools.package-dir]
+"reazonspeech.evaluation" = "src"
+
+[tool.ruff]
+line-length = 140
