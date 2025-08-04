@@ -5,7 +5,7 @@ from typing import TypedDict, Optional, Any, Callable
 
 from datasets import Dataset, load_dataset
 from multiprocess import set_start_method
-from .utils import calculate_cer
+from .utils import calculate_cer, CERResult
 
 
 class EvaluationResult(TypedDict):
@@ -52,8 +52,7 @@ class BaseEvaluator(ABC):
                 if ext == ".jsonl":
                     ext = ".json"
                 ext = ext.removeprefix(".")
-                return load_dataset(
-                    ext, data_files={"train": dataset.as_posix()}, num_proc=self.num_proc)["train"]
+                return load_dataset(ext, data_files={"train": dataset.as_posix()}, num_proc=self.num_proc)["train"]
             elif dataset.is_dir():
                 return load_dataset(
                     dataset.as_posix(),
@@ -66,8 +65,8 @@ class BaseEvaluator(ABC):
         else:
             raise ValueError(f"Invalid dataset type: {type(dataset)}")
 
-    def _calculate_cer(self, example: dict[str, Any], text_column: str) -> dict[str, Any]:
-        return {"cer": calculate_cer(example[text_column], example["prediction"])}
+    def _calculate_cer(self, example: dict[str, Any], text_column: str) -> CERResult:
+        return calculate_cer(example[text_column], example["prediction"])
 
     def evaluate(
         self,
@@ -114,13 +113,22 @@ class BaseEvaluator(ABC):
             fn_kwargs={"text_column": text_column},
         )
 
-        cer = evaluated["cer"]
-        print(f"CER: {sum(cer) / len(cer) * 100:.2f}%")
+        dist = sum(evaluated["distance"])
+        length = sum(evaluated["length"])
+        print(f"CER: {dist / length * 100:.2f}%")
 
         if output_file is not None:
             evaluated.to_json(output_file, num_proc=num_proc, force_ascii=False)
 
         return evaluated
+
+    def calculate_cer(self, dataset: Dataset, text_column: Optional[str] = None, num_proc: Optional[int] = None) -> float:
+        text_column = text_column or self.text_column
+        num_proc = num_proc or self.num_proc
+        evaluated = dataset.map(self._calculate_cer, num_proc=num_proc, fn_kwargs={"text_column": text_column})
+        dist = sum(evaluated["distance"])
+        length = sum(evaluated["length"])
+        return dist / length
 
     @abstractmethod
     def _evaluate(self, example: dict[str, Any], *args, **kwargs) -> EvaluationResult:

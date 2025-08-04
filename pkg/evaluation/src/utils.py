@@ -1,7 +1,14 @@
 import re
+from typing import TypedDict
 
 import editdistance
 import num2words
+
+
+class CERResult(TypedDict):
+    cer: float
+    distance: int
+    length: int
 
 
 PUNCTUATIONS = {ord(x): "" for x in "、。「」『』，,？！!!?!?"}
@@ -16,8 +23,8 @@ def normalize(s: str) -> str:
     return re.sub(r"\d+\.?\d*", conv, s)
 
 
-def calculate_cer(reference: str, prediction: str) -> float:
+def calculate_cer(reference: str, prediction: str) -> CERResult:
     reference = normalize(reference)
     prediction = normalize(prediction)
     distance = editdistance.eval(reference, prediction)
-    return distance / len(reference)
+    return CERResult(cer=distance / len(reference), distance=distance, length=len(reference))
