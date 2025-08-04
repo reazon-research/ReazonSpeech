@@ -58,13 +58,13 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default="base")
+    parser.add_argument("--model", type=str, default="tiny")
     parser.add_argument("--num_gpus", type=int, default=None)
     parser.add_argument("--num_proc", type=int, default=None)
     parser.add_argument("--output_file", type=str, default=None)
     args = parser.parse_args()
 
     evaluator = WhisperEvaluator(output_file=args.output_file)
-    dataset = load_dataset("reazon-research/reazonspeech", "tiny", split="train", num_proc=6)
-    dataset = dataset.cast_column("audio", Audio(decode=False)).select(range(3))
-    evaluated = evaluator.evaluate(dataset, text_column="transcription", num_gpus=args.num_gpus, num_proc=args.num_proc)
+    dataset = load_dataset("reazon-research/reazonspeech", "tiny", split="train")
+    dataset = dataset.cast_column("audio", Audio(decode=False)).select(range(10))
+    evaluated = evaluator.evaluate(dataset=dataset, text_column="transcription", num_gpus=args.num_gpus, num_proc=args.num_proc)

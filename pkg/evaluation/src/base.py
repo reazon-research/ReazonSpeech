@@ -52,7 +52,8 @@ class BaseEvaluator(ABC):
                 if ext == ".jsonl":
                     ext = ".json"
                 ext = ext.removeprefix(".")
-                return load_dataset(ext, data_files=dataset.as_posix(), num_proc=self.num_proc)
+                return load_dataset(
+                    ext, data_files={"train": dataset.as_posix()}, num_proc=self.num_proc)["train"]
             elif dataset.is_dir():
                 return load_dataset(
                     dataset.as_posix(),
