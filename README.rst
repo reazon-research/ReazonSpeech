@@ -17,6 +17,11 @@ Install
 Packages
 ========
 
+`reazonspeech.evaluation <pkg/evaluation>`_
+
+* Provides a set of tools to evaluate ReazonSpeech models and other speech recognition models.
+
+
 `reazonspeech.nemo.asr <pkg/nemo-asr>`_
 
 * Implements a fast, accurate speech recognition based on FastConformer-RNNT.
@@ -44,7 +49,7 @@ LICENSE
 
 ::
 
-    Copyright 2022-2024 Reazon Holdings, inc.
+    Copyright 2022-2025 Reazon Holdings, inc.
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
