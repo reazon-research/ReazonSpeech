@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import TypedDict, Optional, Any, Callable
 
 from datasets import Dataset, load_dataset
+from multiprocess import set_start_method
 from .utils import calculate_cer
 
 
@@ -83,14 +84,29 @@ class BaseEvaluator(ABC):
         text_column = text_column or self.text_column
         output_file = output_file or self.output_file
 
-        if num_gpus is not None:
-            raise NotImplementedError("Multi-gpu inference is not supported")
+        use_gpus = num_gpus is not None and num_proc is not None and num_gpus > 1
+        if use_gpus:
+            set_start_method("spawn", force=True)
 
-        # TODO: Multi-gpu inference support
         if batch_size is None:
-            evaluated = dataset.map(self._evaluate, num_proc=num_proc)
+            evaluated = dataset.map(
+                self._evaluate,
+                with_rank=use_gpus,
+                num_proc=num_proc,
+                fn_kwargs={"num_gpus": num_gpus, "num_proc": num_proc},
+            )
         else:
-            evaluated = dataset.map(self._evaluate_batch, batch_size=batch_size, num_proc=num_proc)
+            evaluated = dataset.map(
+                self._evaluate_batch,
+                batch_size=batch_size,
+                with_rank=use_gpus,
+                num_proc=num_proc,
+                fn_kwargs={"num_gpus": num_gpus, "num_proc": num_proc},
+            )
+
+        if use_gpus:
+            set_start_method("forkserver", force=True)
+
         evaluated = evaluated.map(
             self._calculate_cer,
             num_proc=num_proc,
@@ -106,9 +122,9 @@ class BaseEvaluator(ABC):
         return evaluated
 
     @abstractmethod
-    def _evaluate(self, example: dict[str, Any]) -> EvaluationResult:
+    def _evaluate(self, example: dict[str, Any], *args, **kwargs) -> EvaluationResult:
         raise NotImplementedError("Subclasses must implement _evaluate method")
 
     @abstractmethod
-    def _evaluate_batch(self, batch: dict[str, Any]) -> EvaluationResultBatch:
+    def _evaluate_batch(self, batch: dict[str, Any], *args, **kwargs) -> EvaluationResultBatch:
         raise NotImplementedError("Subclasses must implement _evaluate_batch method")

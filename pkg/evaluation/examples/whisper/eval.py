@@ -1,5 +1,6 @@
 import warnings
 
+import torch
 import whisper
 from datasets import load_dataset, Audio
 from reazonspeech.evaluation import (
@@ -34,10 +35,18 @@ model_args = {
 
 
 class WhisperEvaluator(BaseEvaluator):
-    def __init__(self, model: str = "base", **kwargs):
-        super().__init__(model=model, **kwargs)
+    def __init__(self, model_name: str = "base", **kwargs):
+        super().__init__(**kwargs)
+        self.model_name = model_name
 
-    def _evaluate(self, example) -> EvaluationResult:
+    def _evaluate(self, example, rank: int | None = None, num_gpus: int | None = None, **kwargs) -> EvaluationResult:
+        if rank is None:
+            rank = 0
+        if num_gpus is None:
+            num_gpus = 1
+        if self.model is None:
+            print(f"Loading model on GPU {rank % num_gpus}")
+            self.model = whisper.load_model(self.model_name, device=f"cuda:{rank % num_gpus}" if torch.cuda.is_available() else "cpu")
         ret = whisper.transcribe(self.model, example["audio"]["path"], temperature=temperature, **model_args)
         return {"prediction": ret["text"]}
 
@@ -50,11 +59,12 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="base")
+    parser.add_argument("--num_gpus", type=int, default=None)
+    parser.add_argument("--num_proc", type=int, default=None)
     parser.add_argument("--output_file", type=str, default=None)
     args = parser.parse_args()
 
-    model = whisper.load_model(args.model)
-    evaluator = WhisperEvaluator(model=model, output_file=args.output_file)
+    evaluator = WhisperEvaluator(output_file=args.output_file)
     dataset = load_dataset("reazon-research/reazonspeech", "tiny", split="train", num_proc=6)
-    dataset = dataset.cast_column("audio", Audio(decode=False))
-    evaluated = evaluator.evaluate(dataset, text_column="transcription")
+    dataset = dataset.cast_column("audio", Audio(decode=False)).select(range(3))
+    evaluated = evaluator.evaluate(dataset, text_column="transcription", num_gpus=args.num_gpus, num_proc=args.num_proc)
