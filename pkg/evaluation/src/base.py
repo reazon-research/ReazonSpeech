@@ -107,7 +107,7 @@ class BaseEvaluator(ABC):
             return Dataset.from_dict(dataset)
         elif isinstance(dataset, Callable):
             return Dataset.from_generator(dataset)
-        elif isinstance(dataset, os.PathLike) or isinstance(dataset, str):
+        elif isinstance(dataset, (os.PathLike, str)):
             if not isinstance(dataset, Path):
                 dataset = Path(dataset)
             if dataset.is_file():
@@ -187,6 +187,9 @@ class BaseEvaluator(ABC):
         num_gpus = num_gpus or self.num_gpus
         text_column = text_column or self.text_column
         output_file = output_file or self.output_file
+
+        if dataset is None:
+            raise ValueError("No dataset provided and self.dataset is None.")
 
         use_gpus = num_gpus is not None and num_proc is not None and num_gpus > 1
         if use_gpus:

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "reazonspeech-k2-asr"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
     "numpy < 2",
     "librosa",

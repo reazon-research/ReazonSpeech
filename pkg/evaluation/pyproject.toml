@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "reazonspeech-evaluation"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
     "numpy < 2",
     "editdistance>=0.8.1",
