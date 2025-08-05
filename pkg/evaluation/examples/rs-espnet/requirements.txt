@@ -1,0 +1,2 @@
+git+https://github.com/reazon-research/ReazonSpeech.git#subdirectory=pkg/espnet-asr
+typeguard==2.13.3

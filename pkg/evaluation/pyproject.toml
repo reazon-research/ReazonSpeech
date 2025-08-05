@@ -3,18 +3,20 @@ requires = ["setuptools", "Cython"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "reazonspeech-nemo-asr"
+name = "reazonspeech-evaluation"
 version = "2.2.0"
 dependencies = [
     "numpy < 2",
+    "editdistance>=0.8.1",
     "librosa",
     "soundfile",
-    "torch",
-    "nemo_toolkit[asr] < 2.2",
+    "datasets==3.6.0",
+    "torchcodec",
+    "num2words>=0.5.14",
 ]
 
 [tool.setuptools.package-dir]
-"reazonspeech.nemo.asr" = "src"
+"reazonspeech.evaluation" = "src"
 
-[project.scripts]
-reazonspeech-nemo-asr = "reazonspeech.nemo.asr.cli:main"
+[tool.ruff]
+line-length = 140
