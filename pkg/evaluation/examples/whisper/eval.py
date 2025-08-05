@@ -64,7 +64,7 @@ if __name__ == "__main__":
     parser.add_argument("--output_file", type=str, default=None)
     args = parser.parse_args()
 
-    evaluator = WhisperEvaluator(output_file=args.output_file)
+    evaluator = WhisperEvaluator(model_name=args.model, output_file=args.output_file)
     dataset = load_dataset("reazon-research/reazonspeech", "tiny", split="train")
     dataset = dataset.cast_column("audio", Audio(decode=False)).select(range(10))
     evaluated = evaluator.evaluate(dataset=dataset, text_column="transcription", num_gpus=args.num_gpus, num_proc=args.num_proc)
