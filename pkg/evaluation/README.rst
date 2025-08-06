@@ -54,7 +54,7 @@ Examples and reproducibility
 
 We provide examples for evaluating ReazonSpeech models and other speech recognition models.
 
-- `whisper <https://github.com/reazon-research/ReazonSpeech/blob/main/pkg/evaluation/examples/whisper>`_
-- `reazonspeech v2 espnet-asr <https://github.com/reazon-research/ReazonSpeech/blob/main/pkg/evaluation/examples/rs-espnet>`_
-- `reazonspeech v2 nemo-asr <https://github.com/reazon-research/ReazonSpeech/blob/main/pkg/evaluation/examples/rs-nemo>`_
-- `reazonspeech v2 k2-asr <https://github.com/reazon-research/ReazonSpeech/blob/main/pkg/evaluation/examples/rs-k2>`_
+- `whisper <https://github.com/reazon-research/ReazonSpeech/tree/master/pkg/evaluation/examples/whisper>`_
+- `reazonspeech v2 espnet-asr <https://github.com/reazon-research/ReazonSpeech/tree/master/pkg/evaluation/examples/rs-espnet>`_
+- `reazonspeech v2 nemo-asr <https://github.com/reazon-research/ReazonSpeech/tree/master/pkg/evaluation/examples/rs-nemo>`_
+- `reazonspeech v2 k2-asr <https://github.com/reazon-research/ReazonSpeech/tree/master/pkg/evaluation/examples/rs-k2>`_
