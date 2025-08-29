@@ -19,8 +19,11 @@ ZEN2HAN = str.maketrans(ZENKAKU, HANKAKU)
 
 def normalize(s: str) -> str:
     s = s.translate(PUNCTUATIONS).translate(ZEN2HAN)
-    conv = lambda m: num2words.num2words(m.group(0), lang="ja")
-    return re.sub(r"\d+\.?\d*", conv, s)
+    try:
+        conv = lambda m: num2words.num2words(m.group(0), lang="ja")
+        return re.sub(r"\d+\.?\d*", conv, s)
+    except OverflowError:
+        return s
 
 
 def calculate_cer(reference: str, prediction: str) -> CERResult:
