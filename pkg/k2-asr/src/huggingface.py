@@ -30,7 +30,7 @@ def load_model(device="cpu", precision="fp32", language="ja"):
         epochs = 99
     elif language == "ja-en":
         hf_repo_id = "reazon-research/reazonspeech-k2-v2-ja-en"
-        epochs = 35
+        epochs = 10
     elif language == "ja-en-mls-5k":
         hf_repo_id = "reazon-research/reazonspeech-k2-v2-ja-en-mls-5k-corrected"
         epochs = 21
@@ -66,9 +66,15 @@ def load_model(device="cpu", precision="fp32", language="ja"):
     # If the model is found in the local cache, do not connect
     # to Hugging Face.
     try:
-        basedir = hf.snapshot_download(hf_repo_id, local_files_only=True)
+        if language == "ja-en":
+            basedir = hf.snapshot_download(hf_repo_id, local_files_only=True, revision="multi_ja_en_15k15k")
+        else:
+            basedir = hf.snapshot_download(hf_repo_id, local_files_only=True)
     except hf.utils.LocalEntryNotFoundError:
-        basedir = hf.snapshot_download(hf_repo_id)
+        if language == "ja-en":
+            basedir = hf.snapshot_download(hf_repo_id, revision="multi_ja_en_15k15k")
+        else:
+            basedir = hf.snapshot_download(hf_repo_id)
 
     return sherpa_onnx.OfflineRecognizer.from_transducer(
         tokens=os.path.join(basedir, files["tokens"]),
