@@ -43,21 +43,15 @@ def transcribe(model, audio, config=None):
 
     audio = pad_audio(norm_audio(audio), PAD_SECONDS)
 
-    # TODO Study NeMo's transcribe() function and make it
-    # possible to pass waveforms on memory.
-    with create_tempfile() as tmpf:
-        audio_to_file(tmpf, audio)
+    waveform_tensor = torch.tensor(audio.waveform, dtype=torch.float32)
 
-        if os.name == 'nt':
-            tmpf.close()
-
-        hyp, _ = model.transcribe(
-            [tmpf.name],
-            batch_size=1,
-            return_hypotheses=True,
-            verbose=config.verbose
-        )
-        hyp = hyp[0]
+    hyp, _ = model.transcribe(
+        [waveform_tensor],
+        batch_size=1,
+        return_hypotheses=True,
+        verbose=config.verbose
+    )
+    hyp = hyp[0]
 
     ret = decode_hypothesis(model, hyp)
 
