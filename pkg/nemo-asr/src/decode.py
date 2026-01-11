@@ -41,7 +41,7 @@ def decode_hypothesis(model, hyp):
     text = model.tokenizer.ids_to_text(y_sequence)
 
     subwords = []
-    for idx, (token_id, step) in enumerate(zip(y_sequence, hyp.timestep)):
+    for idx, (token_id, step) in enumerate(zip(y_sequence, hyp.timestamp)):
         subwords.append(Subword(
             token_id=token_id,
             token=model.tokenizer.ids_to_text([token_id]),
