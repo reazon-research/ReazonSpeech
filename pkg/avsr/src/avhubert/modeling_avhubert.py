@@ -272,6 +272,9 @@ class AVHubertForConditionalGeneration(AVHubertPreTrainedModel, GenerationMixin)
         for param in self.avhubert.parameters():
             param.requires_grad = False
 
+    def get_encoder(self):
+        return self.avhubert
+
     def forward(
         self,
         input_values: Optional[torch.Tensor] = None,
