@@ -1,10 +1,16 @@
-from transformers import AutoConfig, AutoModel, AutoModelForSpeechSeq2Seq, AutoProcessor, AutoFeatureExtractor
+from transformers import (
+    AutoConfig,
+    AutoFeatureExtractor,
+    AutoModel,
+    AutoModelForSpeechSeq2Seq,
+    AutoProcessor,
+)
 
 from .avhubert import (
     AVHubertConfig,
-    AVHubertModel,
-    AVHubertForConditionalGeneration,
     AVHubertFeatureExtractor,
+    AVHubertForConditionalGeneration,
+    AVHubertModel,
     AVHubertProcessor,
 )
 

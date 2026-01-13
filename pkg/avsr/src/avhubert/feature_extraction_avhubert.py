@@ -204,8 +204,8 @@ class AVHubertFeatureExtractor(FeatureExtractionMixin):
             if self.max_sample_size:
                 feat_audio = feat_audio[: self.max_sample_size]
                 feat_video = feat_video[: self.max_sample_size]
-            attn_mask = torch.zeros(max_length)
-            attn_mask[max_length - remainder_length :] = 1
+            attn_mask = torch.ones(max_length)
+            attn_mask[max_length - remainder_length :] = 0
 
             input_values.append(feat_audio)
             pixel_values.append(feat_video)
