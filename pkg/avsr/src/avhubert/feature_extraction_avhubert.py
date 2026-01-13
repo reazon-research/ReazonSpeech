@@ -187,7 +187,7 @@ class AVHubertFeatureExtractor(FeatureExtractionMixin):
         max_length = max(len(data) for data in audio)
         input_values = []
         pixel_values = []
-        attention_mask = []
+        padding_mask = []
         for feat_audio, feat_video in zip(audio, video):
             remainder_length = max_length - len(feat_audio)
             audio_remainder = torch.zeros(
@@ -204,12 +204,12 @@ class AVHubertFeatureExtractor(FeatureExtractionMixin):
             if self.max_sample_size:
                 feat_audio = feat_audio[: self.max_sample_size]
                 feat_video = feat_video[: self.max_sample_size]
-            attn_mask = torch.ones(max_length)
-            attn_mask[max_length - remainder_length :] = 0
+            pad_mask = torch.zeros(max_length)
+            pad_mask[max_length - remainder_length :] = 1
 
             input_values.append(feat_audio)
             pixel_values.append(feat_video)
-            attention_mask.append(attn_mask)
+            padding_mask.append(pad_mask)
 
         input_values = torch.stack(input_values)
         batch = BatchFeature(
@@ -218,7 +218,7 @@ class AVHubertFeatureExtractor(FeatureExtractionMixin):
                     F.layer_norm(input_values, input_values.shape[2:]) if self.normalize else input_values
                 ),
                 "pixel_values": self.transforms(torch.stack(pixel_values)),
-                "attention_mask": torch.stack(attention_mask),
+                "padding_mask": torch.stack(padding_mask),
             }
         )
         return batch

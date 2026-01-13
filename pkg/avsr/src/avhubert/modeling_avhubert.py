@@ -163,9 +163,9 @@ class AVHubertModel(AVHubertPreTrainedModel):
         input_values: Optional[torch.Tensor] = None,
         pixel_values: Optional[torch.Tensor] = None,
         padding_mask: Optional[torch.Tensor] = None,
-        attention_mask: Optional[torch.Tensor] = None,
         output_attentions: bool = False,
         output_hidden_states: bool = False,
+        **kwargs,
     ) -> ModelOutput:
         if input_values is not None and pixel_values is None:
             features_audio = self.feature_extractor_audio(input_values)  # [B, F, T]
@@ -188,10 +188,10 @@ class AVHubertModel(AVHubertPreTrainedModel):
         features = features.transpose(1, 2)
         features = self.layer_norm(features)
 
-        if attention_mask is not None:
-            attention_mask = self.forward_mask(features, attention_mask)
+        if padding_mask is not None:
+            padding_mask = self.forward_mask(features, padding_mask)
         else:
-            attention_mask = torch.ones(features.size()[:2], dtype=torch.bool, device=features.device)
+            padding_mask = torch.zeros(features.size()[:2], dtype=torch.bool, device=features.device)
 
         if self.post_extract_proj is not None:
             features = self.post_extract_proj(features)
@@ -201,7 +201,7 @@ class AVHubertModel(AVHubertPreTrainedModel):
         # transformer encoder
         encoder_out = self.encoder(
             hidden_states=features,
-            attention_mask=attention_mask,
+            attention_mask=~padding_mask.bool(),
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
         )
@@ -279,7 +279,7 @@ class AVHubertForConditionalGeneration(AVHubertPreTrainedModel, GenerationMixin)
         self,
         input_values: Optional[torch.Tensor] = None,
         pixel_values: Optional[torch.Tensor] = None,
-        attention_mask: Optional[torch.Tensor] = None,
+        padding_mask: Optional[torch.Tensor] = None,
         decoder_input_ids: Optional[torch.Tensor] = None,
         decoder_attention_mask: Optional[torch.Tensor] = None,
         labels: Optional[torch.Tensor] = None,
@@ -290,7 +290,7 @@ class AVHubertForConditionalGeneration(AVHubertPreTrainedModel, GenerationMixin)
         encoder_outs = self.avhubert(
             input_values=input_values,
             pixel_values=pixel_values,
-            attention_mask=attention_mask,
+            padding_mask=padding_mask,
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
         )
@@ -300,7 +300,7 @@ class AVHubertForConditionalGeneration(AVHubertPreTrainedModel, GenerationMixin)
             inputs_embeds=embed_tokens,
             attention_mask=decoder_attention_mask,
             encoder_hidden_states=encoder_outs.last_hidden_state,
-            encoder_attention_mask=attention_mask,
+            encoder_attention_mask=~padding_mask.bool(),
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
         )
@@ -376,7 +376,7 @@ class AVHubertForConditionalGeneration(AVHubertPreTrainedModel, GenerationMixin)
         pixel_values: Optional[torch.Tensor] = None,
         decoder_input_ids: Optional[torch.Tensor] = None,
         decoder_attention_mask: Optional[torch.Tensor] = None,
-        attention_mask: Optional[torch.Tensor] = None,
+        padding_mask: Optional[torch.Tensor] = None,
         **kwargs,
     ):
         if decoder_input_ids is None:
@@ -387,5 +387,5 @@ class AVHubertForConditionalGeneration(AVHubertPreTrainedModel, GenerationMixin)
             "pixel_values": pixel_values,
             "decoder_input_ids": decoder_input_ids,
             "decoder_attention_mask": decoder_attention_mask,
-            "attention_mask": attention_mask,
+            "padding_mask": padding_mask,
         }
