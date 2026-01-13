@@ -51,13 +51,13 @@ def transcribe(model, audio, config=None):
         if os.name == 'nt':
             tmpf.close()
 
-        hyp, _ = model.transcribe(
+        result = model.transcribe(
             [tmpf.name],
             batch_size=1,
             return_hypotheses=True,
             verbose=config.verbose
         )
-        hyp = hyp[0]
+        hyp = result[0]
 
     ret = decode_hypothesis(model, hyp)
 

@@ -6,11 +6,11 @@ build-backend = "setuptools.build_meta"
 name = "reazonspeech-nemo-asr"
 version = "2.2.0"
 dependencies = [
-    "numpy < 2",
+    "numpy",
     "librosa",
     "soundfile",
     "torch",
-    "nemo_toolkit[asr] < 2.2",
+    "nemo_toolkit[asr] >= 2.6.1",
 ]
 
 [tool.setuptools.package-dir]
