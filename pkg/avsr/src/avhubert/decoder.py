@@ -477,7 +477,12 @@ class AVHubertDecoder(nn.Module):
             self.pos_embed = SinusoidalPositionalEmbedding(config=config)
         self.layer_norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
         self.dropout = nn.Dropout(config.hidden_dropout)
-        self.layers = nn.ModuleList([AVHubertDecoderLayer(config) for _ in range(config.num_hidden_layers)])
+        self.layers = nn.ModuleList(
+            [
+                AVHubertDecoderLayer(config, layer_idx=layer_idx)
+                for layer_idx in range(config.num_hidden_layers)
+            ]
+        )
         self.gradient_checkpointing = False
 
     def forward(
