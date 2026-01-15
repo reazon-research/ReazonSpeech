@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reazonspeech-avsr"
+version = "3.0.0"
+requires-python = ">=3.8,<3.12"
+dependencies = [
+    "deepspeed",
+    "einops",
+    "librosa",
+    "mediapipe<=0.10.21",
+    "opencv-python",
+    "python_speech_features",
+    "setuptools",
+    "soundfile",
+    "torch",
+    "torchvision",
+    "transformers<=4.53.3",
+]
+
+[tool.setuptools.package-dir]
+"reazonspeech.avsr" = "src"
