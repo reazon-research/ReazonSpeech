@@ -50,7 +50,7 @@ def audio_from_path(path: str) -> AudioData:
     return audio_from_numpy(array, samplerate)
 
 
-def audio_to_file(fp: BinaryIO, audio: AudioData, format: str = 'wav'):
+def audio_to_file(fp: BinaryIO, audio: AudioData, format: str = 'wav') -> None:
     """Write audio data to file
 
     Args:

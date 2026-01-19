@@ -1,10 +1,6 @@
-import os
-
 import torch
 from reazonspeech.shared.audio import norm_audio, pad_audio
-from reazonspeech.shared.fs import create_tempfile
 from reazonspeech.shared.interface import TranscribeConfig
-from reazonspeech.shared.writer import audio_to_file
 
 from .decode import PAD_SECONDS, decode_hypothesis
 
