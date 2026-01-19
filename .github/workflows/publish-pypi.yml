@@ -1,0 +1,47 @@
+name: publish-pypi
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+        package:
+          - path: .
+            name: reazonspeech
+          - path: pkg/shared
+            name: reazonspeech-shared
+          - path: pkg/avsr
+            name: reazonspeech-avsr
+          - path: pkg/evaluation
+            name: reazonspeech-evaluation
+          - path: pkg/espnet-asr
+            name: reazonspeech-espnet-asr
+          - path: pkg/espnet-oneseg
+            name: reazonspeech-espnet-oneseg
+          - path: pkg/k2-asr
+            name: reazonspeech-k2-asr
+          - path: pkg/nemo-asr
+            name: reazonspeech-nemo-asr
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Build ${{ matrix.package.name }}
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+        working-directory: ${{ matrix.package.path }}
+      - name: Publish ${{ matrix.package.name }} to PyPI
+        if: matrix.python-version == '3.11'
+        uses: pypa/gh-action-pypi-publish@v1.10.1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          packages-dir: ${{ matrix.package.path }}/dist
