@@ -1,8 +1,3 @@
-import os
-
-import huggingface_hub as hf
-import sherpa_onnx
-
 # The following definitions should match the repository layout
 # on Hugging Face Hub. Whenever the HF repo is changed, this
 # file should be updated accordingly.
@@ -14,13 +9,24 @@ import sherpa_onnx
 # https://huggingface.co/reazon-research/reazonspeech-k2-v2-ja-en
 # https://huggingface.co/reazon-research/reazonspeech-k2-v2-ja-en-mls-5k-corrected
 
-def load_model(device="cpu", precision="fp32", language="ja"):
+import os
+from typing import Literal
+
+import huggingface_hub as hf
+import sherpa_onnx
+
+SUPPORTED_DEVICES = Literal["cpu", "cuda", "coreml"]
+SUPPORTED_PRECISIONS = Literal["fp32", "int8", "int8-fp32"]
+SUPPORTED_LANGUAGES = Literal["ja", "ja-en", "ja-en-mls-5k"]
+
+
+def load_model(device: SUPPORTED_DEVICES = "cpu", precision: SUPPORTED_PRECISIONS = "fp32", language: SUPPORTED_LANGUAGES = "ja") -> sherpa_onnx.OfflineRecognizer:
     """Load ReazonSpeech model from Hugging Face
 
     Args:
-      device (str): "cpu", "cuda" or "coreml"
-      precision (str): Whether to load quantized model ("fp32", "int8" or "int8-fp32")
-      language (str): Whether to use japanese or bi-lingual model ("ja" or "ja-en" or "ja-en-mls-5k") 
+      device (SUPPORTED_DEVICES): "cpu", "cuda" or "coreml"
+      precision (SUPPORTED_PRECISIONS): Whether to load quantized model ("fp32", "int8" or "int8-fp32")
+      language (SUPPORTED_LANGUAGES): Whether to use japanese or bi-lingual model ("ja" or "ja-en" or "ja-en-mls-5k") 
 
     Returns:
       sherpa_onnx.OfflineRecognizer
