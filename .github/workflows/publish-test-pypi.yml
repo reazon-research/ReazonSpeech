@@ -12,6 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        python-version: ["3.11", "3.12"]
         package:
           - path: .
             name: reazonspeech
@@ -33,13 +34,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
       - name: Build ${{ matrix.package.name }}
         run: |
           python -m pip install --upgrade pip build
           python -m build
         working-directory: ${{ matrix.package.path }}
       - name: Publish ${{ matrix.package.name }} to TestPyPI
+        if: matrix.python-version == '3.11'
         uses: pypa/gh-action-pypi-publish@v1.10.1
         with:
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
