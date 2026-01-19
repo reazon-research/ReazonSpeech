@@ -1,7 +1,10 @@
 import collections
 
 import ctc_segmentation
+import numpy as np
 import torch
+from espnet2.bin.asr_inference import Speech2Text
+from numpy.typing import NDArray
 
 TOKEN_EOS = {'。', '?', '!'}
 TOKEN_COMMA = {'、', ','}
@@ -9,7 +12,10 @@ TOKEN_PUNC = TOKEN_EOS | TOKEN_COMMA
 PHONEMIC_BREAK = 8000
 CHARS_PER_SEGMENT = 15
 
-def ctc_decode(model, samples):
+Blank = collections.namedtuple('Blank', ['start', 'end'])
+
+
+def ctc_decode(model: Speech2Text, samples: NDArray[np.float32]) -> NDArray[np.float32]:
     """Get character probabilities per frame using CTC network"""
 
     # Prepare audio data for encode()
@@ -26,7 +32,8 @@ def ctc_decode(model, samples):
     lpz = model.asr_model.ctc.softmax(enc)
     return lpz.detach().squeeze(0).cpu().numpy()
 
-def find_blank(model, samples, threshold=0.98):
+
+def find_blank(model: Speech2Text, samples: NDArray[np.float32], threshold: float = 0.98) -> Blank:
     """Find no-speech segment in audio stream.
 
     The entire point of this function is to detect a reasonable
@@ -35,7 +42,6 @@ def find_blank(model, samples, threshold=0.98):
 
     See also: arXiv:2002.00551
     """
-    Blank = collections.namedtuple('Blank', ['start', 'end'])
     blank_id = model.asr_model.blank_id
     nsamples = len(samples)
 
@@ -57,7 +63,8 @@ def find_blank(model, samples, threshold=0.98):
 
     return max(blanks, key=lambda b: b.end - b.start)
 
-def get_timings(model, samples, text):
+
+def get_timings(model: Speech2Text, samples: NDArray[np.float32], text: str) -> NDArray[np.float32]:
     """Compute playback timing of each character using CTC segmentation"""
     lpz = ctc_decode(model, samples)
 
@@ -71,7 +78,8 @@ def get_timings(model, samples, text):
     # "+1" to skip a preceding blank character.
     return timings[indices[0]+1:indices[1]]
 
-def find_end_of_segment(text, timings, start):
+
+def find_end_of_segment(text: str, timings: NDArray[np.float32], start: int) -> int:
     nchar = len(text)
     for idx in range(start, nchar):
         if idx < nchar - 1:
@@ -85,7 +93,8 @@ def find_end_of_segment(text, timings, start):
                         break
     return idx
 
-def split_text(model, samples, text):
+
+def split_text(model: Speech2Text, samples: NDArray[np.float32], text: str) -> list[tuple[float, float, str]]:
     """Split texts into segments (with timestamps)"""
     try:
         timings = get_timings(model, samples, text)
