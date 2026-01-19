@@ -1,13 +1,13 @@
-import os
 import warnings
+
 import sherpa_onnx
-from .interface import TranscribeConfig, TranscribeResult, Subword
-from .audio import audio_to_file, pad_audio, norm_audio
+from reazonspeech.shared.audio import AudioData, norm_audio, pad_audio
+from reazonspeech.shared.interface import Subword, TranscribeConfig, TranscribeResult
 
 PAD_SECONDS = 0.9
 TOO_LONG_SECONDS = 30.0
 
-def transcribe(model, audio, config=None):
+def transcribe(model: sherpa_onnx.OfflineRecognizer, audio: AudioData, config: TranscribeConfig | None = None) -> TranscribeResult:
     """Inference audio data using K2 model
 
     Args:

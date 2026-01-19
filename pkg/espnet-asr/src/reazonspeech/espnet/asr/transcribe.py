@@ -1,22 +1,25 @@
-import tqdm
 import numpy as np
 import torch
-from .audio import norm_audio
-from .interface import TranscribeConfig, TranscribeResult, Segment
-from .ctc import split_text, find_blank
+import tqdm
+from espnet2.bin.asr_inference import Speech2Text
+from reazonspeech.shared.audio import norm_audio
+from reazonspeech.shared.interface import AudioData, Segment, TranscribeConfig, TranscribeResult
+
+from .ctc import find_blank, split_text
 
 # Hyper parameters
 WINDOW_SECONDS = 20
 PADDING = (16000, 8000)
 
-def load_model(device=None):
+
+def load_model(device: torch.device | str | None = None) -> Speech2Text:
     """Load ReazonSpeech model
 
     Args:
-      device (str): Specify "cuda" or "cpu"
+      device (torch.device | str | None): Specify "cuda" or "cpu"
 
     Returns:
-      espnet2.bin.asr_inference.Speech2Text
+      Speech2Text
     """
     if device is None:
         if torch.cuda.is_available():
@@ -24,18 +27,18 @@ def load_model(device=None):
         else:
             device = "cpu"
 
-    from espnet2.bin.asr_inference import Speech2Text
     return Speech2Text.from_pretrained(
         "https://huggingface.co/reazon-research/reazonspeech-espnet-v2",
         lm_weight=0,
         device=device,
     )
 
-def transcribe(model, audio, config=None):
+
+def transcribe(model: Speech2Text, audio: AudioData, config: TranscribeConfig | None = None) -> TranscribeResult:
     """Interface function to transcribe audio data
 
     Args:
-      model (espnet2.bin.asr_inference.Speech2Text): ReazonSpeech model
+      model (Speech2Text): ReazonSpeech model
       audio (AudioData): Audio to transcribe
       config (TranscribeConfig): Additional settings
 

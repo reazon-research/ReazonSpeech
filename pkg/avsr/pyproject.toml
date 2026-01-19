@@ -10,7 +10,7 @@ dependencies = [
     "deepspeed",
     "einops",
     "librosa",
-    "mediapipe<=0.10.21",
+    "mediapipe",
     "opencv-python",
     "python_speech_features",
     "setuptools",
@@ -20,5 +20,9 @@ dependencies = [
     "transformers<=4.53.3",
 ]
 
-[tool.setuptools.package-dir]
-"reazonspeech.avsr" = "src"
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["reazonspeech.avsr"]

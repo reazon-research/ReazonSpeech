@@ -16,5 +16,9 @@ dependencies = [
 [tool.setuptools.package-data]
 "reazonspeech.espnet.oneseg.data" = ["*.txt"]
 
-[tool.setuptools.package-dir]
-"reazonspeech.espnet.oneseg" = "src"
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["reazonspeech.espnet.oneseg"]

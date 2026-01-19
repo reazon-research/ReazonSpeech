@@ -1,7 +1,10 @@
+from pathlib import Path
+
 import cv2
 import librosa
 import mediapipe as mp
 import numpy as np
+import requests
 import torch
 import torch.nn.functional as F
 import torchvision.transforms.v2 as transforms
@@ -10,7 +13,10 @@ from python_speech_features import logfbank
 from transformers import FeatureExtractionMixin
 from transformers.feature_extraction_utils import BatchFeature
 
-mp_face_mesh = mp.solutions.face_mesh
+BaseOptions = mp.tasks.BaseOptions
+FaceLandmarker = mp.tasks.vision.FaceLandmarker
+FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
+VisionRunningMode = mp.tasks.vision.RunningMode
 
 
 class AVHubertFeatureExtractor(FeatureExtractionMixin):
@@ -79,19 +85,30 @@ class AVHubertFeatureExtractor(FeatureExtractionMixin):
     def _extract_mouth(self, frames: NDArray[np.uint8]) -> NDArray[np.uint8]:
         mouth_frames = []
         top_idx, right_idx, bottom_idx, left_idx = self.landmark_indices
-        with mp_face_mesh.FaceMesh(
-            static_image_mode=self.static_image_mode,
-            max_num_faces=1,
-            refine_landmarks=self.refine_landmarks,
-            min_detection_confidence=self.min_detection_confidence,
-            min_tracking_confidence=self.min_tracking_confidence,
+
+        model_path = Path.home() / ".cache" / "reazonspeech" / "mediapipe---models--face_landmarker.task"
+        model_path.parent.mkdir(parents=True, exist_ok=True)
+        if not model_path.exists():
+            with open(model_path, "wb") as f:
+                f.write(requests.get("https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task").content)
+        with FaceLandmarker.create_from_options(
+            FaceLandmarkerOptions(
+                base_options=BaseOptions(model_asset_path=model_path.as_posix()),
+                running_mode=VisionRunningMode.IMAGE,
+                num_faces=1,
+                min_face_detection_confidence=self.min_detection_confidence,
+                min_tracking_confidence=self.min_tracking_confidence,
+            )
         ) as face_mesh:
             for frame in frames:
-                res = face_mesh.process(frame)
-                if res.multi_face_landmarks is None or len(res.multi_face_landmarks) == 0:
+                res = face_mesh.detect(
+                    mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
+                )
+                if res.face_landmarks is None or len(res.face_landmarks) == 0:
                     mouth_frames.append(np.zeros([self.image_crop_size, self.image_crop_size], dtype=np.uint8))
                     continue
-                landmarks = res.multi_face_landmarks[0].landmark
+
+                landmarks = res.face_landmarks[0]
                 top = landmarks[top_idx]
                 left = landmarks[left_idx]
                 right = landmarks[right_idx]

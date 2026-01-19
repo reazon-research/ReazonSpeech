@@ -15,8 +15,9 @@ dependencies = [
     "num2words>=0.5.14",
 ]
 
-[tool.setuptools.package-dir]
-"reazonspeech.evaluation" = "src"
+[tool.setuptools]
+package-dir = {"" = "src"}
 
-[tool.ruff]
-line-length = 140
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["reazonspeech.evaluation"]

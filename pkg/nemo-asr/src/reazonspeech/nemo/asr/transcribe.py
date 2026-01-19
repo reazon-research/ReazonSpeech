@@ -1,16 +1,20 @@
-import os
-import dataclasses
 import torch
-from .interface import TranscribeConfig
-from .decode import decode_hypothesis, PAD_SECONDS
-from .audio import audio_to_file, pad_audio, norm_audio
-from .fs import create_tempfile
+from nemo.utils import logging
+from reazonspeech.shared.audio import norm_audio, pad_audio
+from reazonspeech.shared.interface import AudioData, TranscribeConfig, TranscribeResult
 
-def load_model(device=None):
+from .decode import PAD_SECONDS, decode_hypothesis
+
+logging.setLevel(logging.ERROR)
+
+from nemo.collections.asr.models import EncDecRNNTBPEModel  # noqa: E402
+
+
+def load_model(device: torch.device | str | None = None) -> EncDecRNNTBPEModel:
     """Load ReazonSpeech model
 
     Args:
-      device (str): Specify "cuda" or "cpu"
+      device (torch.device | str | None): Specify "cuda" or "cpu"
 
     Returns:
       nemo.collections.asr.models.EncDecRNNTBPEModel
@@ -20,14 +24,10 @@ def load_model(device=None):
             device = "cuda"
         else:
             device = "cpu"
+    return EncDecRNNTBPEModel.from_pretrained("reazon-research/reazonspeech-nemo-v2", map_location=device)
 
-    from nemo.utils import logging
-    logging.setLevel(logging.ERROR)
-    from nemo.collections.asr.models import EncDecRNNTBPEModel
-    return EncDecRNNTBPEModel.from_pretrained('reazon-research/reazonspeech-nemo-v2',
-                                              map_location=device)
 
-def transcribe(model, audio, config=None):
+def transcribe(model: EncDecRNNTBPEModel, audio: AudioData, config: TranscribeConfig | None = None) -> TranscribeResult:
     """Inference audio data using NeMo model
 
     Args:

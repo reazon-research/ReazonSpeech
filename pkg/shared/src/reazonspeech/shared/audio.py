@@ -1,15 +1,21 @@
+from typing import BinaryIO
+
 import librosa
-import soundfile
 import numpy as np
+import soundfile
+import torch
+from numpy.typing import NDArray
+
 from .interface import AudioData
 
 SAMPLERATE = 16000
 
-def audio_from_numpy(array, samplerate):
+
+def audio_from_numpy(array: NDArray[np.float32], samplerate: int) -> AudioData:
     """Load audio from Numpy array
 
     Args:
-      array (numpy.ndarray): Audio audio
+      array (NDArray[np.float32]): Audio audio
       samplerate (int): Sample rate of the input array
 
     Returns:
@@ -17,11 +23,12 @@ def audio_from_numpy(array, samplerate):
     """
     return AudioData(array, samplerate)
 
-def audio_from_tensor(tensor, samplerate):
+
+def audio_from_tensor(tensor: torch.FloatTensor, samplerate: int) -> AudioData:
     """Load audio from PyTorch Tensor
 
     Args:
-      tensor (torch.tensor): Audio audio
+      tensor (torch.FloatTensor): Audio audio
       samplerate (int): Sample rate of the input tensor
 
     Returns:
@@ -29,7 +36,8 @@ def audio_from_tensor(tensor, samplerate):
     """
     return audio_from_numpy(tensor.numpy(), samplerate)
 
-def audio_from_path(path):
+
+def audio_from_path(path: str) -> AudioData:
     """Load audio from a file
 
     Args:
@@ -41,7 +49,8 @@ def audio_from_path(path):
     array, samplerate = librosa.load(path, sr=None)
     return audio_from_numpy(array, samplerate)
 
-def audio_to_file(fp, audio, format='wav'):
+
+def audio_to_file(fp: BinaryIO, audio: AudioData, format: str = 'wav') -> None:
     """Write audio data to file
 
     Args:
@@ -51,7 +60,8 @@ def audio_to_file(fp, audio, format='wav'):
     """
     soundfile.write(fp, audio.waveform, audio.samplerate, format=format)
 
-def norm_audio(audio):
+
+def norm_audio(audio: AudioData) -> AudioData:
     """Normalize audio into 16khz mono waveform
 
     Args:
@@ -67,7 +77,8 @@ def norm_audio(audio):
         waveform = librosa.to_mono(waveform)
     return AudioData(waveform, SAMPLERATE)
 
-def pad_audio(audio, seconds):
+
+def pad_audio(audio: AudioData, seconds: float) -> AudioData:
     """Pad audio with silence
 
     Args:
@@ -77,7 +88,9 @@ def pad_audio(audio, seconds):
     Returns:
       AudioData
     """
-    waveform = np.pad(audio.waveform,
-                      pad_width=int(seconds * audio.samplerate),
-                      mode='constant')
+    waveform = np.pad(
+        audio.waveform,
+        pad_width=int(seconds * audio.samplerate),
+        mode='constant'
+    )
     return AudioData(waveform, audio.samplerate)
