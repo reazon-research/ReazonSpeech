@@ -1,4 +1,10 @@
+from nemo.collections.asr.parts.utils.rnnt_utils import Hypothesis
+from nemo.utils import logging
 from reazonspeech.shared.interface import Segment, Subword, TranscribeResult
+
+logging.setLevel(logging.ERROR)
+
+from nemo.collections.asr.models import EncDecRNNTBPEModel  # noqa: E402
 
 # Hyper parameters
 PAD_SECONDS = 0.5
@@ -10,7 +16,8 @@ TOKEN_EOS = {'。', '?', '!'}
 TOKEN_COMMA = {'、', ','}
 TOKEN_PUNC = TOKEN_EOS | TOKEN_COMMA
 
-def find_end_of_segment(subwords, start):
+
+def find_end_of_segment(subwords: list[Subword], start: int) -> int:
     """Heuristics to identify speech boundaries"""
     length = len(subwords)
     for idx in range(start, length):
@@ -25,7 +32,8 @@ def find_end_of_segment(subwords, start):
                         break
     return idx
 
-def decode_hypothesis(model, hyp):
+
+def decode_hypothesis(model: EncDecRNNTBPEModel, hyp: Hypothesis) -> TranscribeResult:
     """Decode ALSD beam search info into transcribe result
 
     Args:
