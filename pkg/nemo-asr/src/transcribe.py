@@ -43,7 +43,7 @@ def transcribe(model, audio, config=None):
 
     audio = pad_audio(norm_audio(audio), PAD_SECONDS)
 
-    waveform_tensor = torch.tensor(audio.waveform, dtype=torch.float32)
+    waveform_tensor = torch.from_numpy(audio.waveform)
 
     result = model.transcribe(
         [waveform_tensor],
