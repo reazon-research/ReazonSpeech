@@ -1,9 +1,10 @@
-import tqdm
 import numpy as np
 import torch
-from .audio import norm_audio
-from .interface import TranscribeConfig, TranscribeResult, Segment
-from .ctc import split_text, find_blank
+import tqdm
+from reazonspeech.shared.audio import norm_audio
+from reazonspeech.shared.interface import Segment, TranscribeConfig, TranscribeResult
+
+from .ctc import find_blank, split_text
 
 # Hyper parameters
 WINDOW_SECONDS = 20

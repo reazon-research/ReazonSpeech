@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reazonspeech-shared"
+version = "3.0.0"
+description = "Shared utilities for ReazonSpeech."
+readme = "README.rst"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "librosa",
+    "soundfile",
+    "torch",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["reazonspeech.shared"]

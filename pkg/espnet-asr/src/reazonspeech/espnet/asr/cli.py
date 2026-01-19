@@ -26,12 +26,15 @@ EXAMPLES
     $ reazonspeech-espnet-asr -o sample.vtt sample.webm
 """
 
-import sys
 import getopt
+import sys
 import warnings
-from .writer import get_writer
-from .audio import audio_from_path
-from .transcribe import transcribe, load_model
+
+from reazonspeech.shared.audio import audio_from_path
+from reazonspeech.shared.writer import get_writer
+
+from .transcribe import load_model, transcribe
+
 
 def main():
     outpath = None

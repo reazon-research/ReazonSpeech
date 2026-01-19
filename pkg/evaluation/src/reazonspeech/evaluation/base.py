@@ -7,11 +7,12 @@ speech recognition models on various datasets.
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TypedDict, Optional, Any, Callable
+from typing import Any, Callable, Optional, TypedDict
 
 from datasets import Dataset, load_dataset
 from multiprocess import set_start_method
-from .utils import calculate_cer, CERResult
+
+from .utils import CERResult, calculate_cer
 
 
 class EvaluationResult(TypedDict):

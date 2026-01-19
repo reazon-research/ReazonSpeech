@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "reazonspeech-nemo-asr"
 version = "3.0.0"
 dependencies = [
+    "reazonspeech-shared>=3.0.0",
     "numpy",
     "librosa",
     "soundfile",
@@ -13,8 +14,12 @@ dependencies = [
     "nemo_toolkit[asr] >= 2.6.1",
 ]
 
-[tool.setuptools.package-dir]
-"reazonspeech.nemo.asr" = "src"
-
 [project.scripts]
 reazonspeech-nemo-asr = "reazonspeech.nemo.asr.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["reazonspeech.nemo.asr"]

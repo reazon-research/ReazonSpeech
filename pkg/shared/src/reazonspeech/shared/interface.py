@@ -1,11 +1,15 @@
-import numpy as np
 from dataclasses import dataclass
+
+import numpy as np
+from numpy.typing import NDArray
+
 
 @dataclass
 class AudioData:
     """Container for audio waveform"""
-    waveform: np.float32
+    waveform: NDArray[np.float32]
     samplerate: int
+
 
 @dataclass
 class Subword:
@@ -13,13 +17,27 @@ class Subword:
     # Currently Subword only has a single-point timestamp.
     # Theoretically, we should be able to compute time ranges.
     seconds: float
+    token_id: int
     token: str
+
+
+@dataclass
+class Segment:
+    """A segment of transcription with timestamps"""
+    start_seconds: float
+    end_seconds: float
+    text: str
+
 
 @dataclass
 class TranscribeResult:
     text: str
     subwords: list[Subword]
+    segments: list[Segment]
+    hypothesis: object = None
+
 
 @dataclass
 class TranscribeConfig:
     verbose: bool = True
+    raw_hypothesis: bool = False

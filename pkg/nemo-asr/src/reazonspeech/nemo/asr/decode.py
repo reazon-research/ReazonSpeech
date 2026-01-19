@@ -1,4 +1,4 @@
-from .interface import Subword, Segment, TranscribeResult
+from reazonspeech.shared.interface import Segment, Subword, TranscribeResult
 
 # Hyper parameters
 PAD_SECONDS = 0.5

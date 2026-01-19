@@ -1,7 +1,7 @@
 import collections
-import numpy as np
-import torch
+
 import ctc_segmentation
+import torch
 
 TOKEN_EOS = {'。', '?', '!'}
 TOKEN_COMMA = {'、', ','}

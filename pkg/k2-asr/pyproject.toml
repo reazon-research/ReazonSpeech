@@ -6,12 +6,14 @@ build-backend = "setuptools.build_meta"
 name = "reazonspeech-k2-asr"
 version = "3.0.0"
 dependencies = [
-    "numpy",
-    "librosa",
-    "soundfile",
+    "reazonspeech-shared>=3.0.0",
     "huggingface_hub",
     "sherpa-onnx",
 ]
 
-[tool.setuptools.package-dir]
-"reazonspeech.k2.asr" = "src"
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["reazonspeech.k2.asr"]
