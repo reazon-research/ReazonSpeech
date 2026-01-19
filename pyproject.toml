@@ -13,10 +13,7 @@ dependencies = []
 [project.optional-dependencies]
 shared = ["reazonspeech-shared>=3.0.0"]
 avsr = ["reazonspeech-avsr>=3.0.0"]
-evaluation = [
-    "reazonspeech-evaluation>=3.0.0",
-    "reazonspeech-shared>=3.0.0",
-]
+evaluation = ["reazonspeech-evaluation>=3.0.0"]
 k2-asr = [
     "reazonspeech-shared>=3.0.0",
     "reazonspeech-k2-asr>=3.0.0",
@@ -36,16 +33,8 @@ espnet-oneseg = [
 
 [dependency-groups]
 shared = ["reazonspeech-shared"]
-asr = [
-    "reazonspeech-k2-asr",
-    "reazonspeech-nemo-asr",
-    "reazonspeech-espnet-asr",
-]
 avsr = ["reazonspeech-avsr"]
-evaluation = [
-    "reazonspeech-evaluation",
-    "reazonspeech-shared",
-]
+evaluation = ["reazonspeech-evaluation"]
 k2-asr = [
     "reazonspeech-shared",
     "reazonspeech-k2-asr",
