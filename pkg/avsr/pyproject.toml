@@ -10,7 +10,7 @@ dependencies = [
     "deepspeed",
     "einops",
     "librosa",
-    "mediapipe<=0.10.21",
+    "mediapipe",
     "opencv-python",
     "python_speech_features",
     "setuptools",
