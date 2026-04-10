@@ -1,16 +1,28 @@
+from pathlib import Path
+
 import cv2
 import librosa
 import mediapipe as mp
 import numpy as np
+import requests
 import torch
 import torch.nn.functional as F
 import torchvision.transforms.v2 as transforms
 from numpy.typing import NDArray
+from packaging.version import Version
 from python_speech_features import logfbank
 from transformers import FeatureExtractionMixin
 from transformers.feature_extraction_utils import BatchFeature
 
-mp_face_mesh = mp.solutions.face_mesh
+use_legacy_mp = False
+if Version(mp.__version__) <= Version("0.10.21"):
+    mp_face_mesh = mp.solutions.face_mesh
+    use_legacy_mp = True
+else:
+    BaseOptions = mp.tasks.BaseOptions
+    FaceLandmarker = mp.tasks.vision.FaceLandmarker
+    FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
+    VisionRunningMode = mp.tasks.vision.RunningMode
 
 
 class AVHubertFeatureExtractor(FeatureExtractionMixin):
@@ -72,11 +84,65 @@ class AVHubertFeatureExtractor(FeatureExtractionMixin):
                 frames_np = np.stack([cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) for frame in frames_np], axis=0)
 
         if extract_mouth:
-            frames_np = self._extract_mouth(frames_np)
+            frames_np = self._extract_mouth_legacy(frames_np) if use_legacy_mp else self._extract_mouth(frames_np)
 
         return torch.from_numpy(frames_np).unsqueeze(dim=1)
 
     def _extract_mouth(self, frames: NDArray[np.uint8]) -> NDArray[np.uint8]:
+        mouth_frames = []
+        top_idx, right_idx, bottom_idx, left_idx = self.landmark_indices
+
+        model_path = Path.home() / ".cache" / "reazonspeech" / "mediapipe---models--face_landmarker.task"
+        model_path.parent.mkdir(parents=True, exist_ok=True)
+        if not model_path.exists():
+            with open(model_path, "wb") as f:
+                f.write(requests.get("https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task").content)
+        with FaceLandmarker.create_from_options(
+            FaceLandmarkerOptions(
+                base_options=BaseOptions(model_asset_path=model_path.as_posix()),
+                running_mode=VisionRunningMode.IMAGE,
+                num_faces=1,
+                min_face_detection_confidence=self.min_detection_confidence,
+                min_tracking_confidence=self.min_tracking_confidence,
+            )
+        ) as face_mesh:
+            for frame in frames:
+                res = face_mesh.detect(
+                    mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
+                )
+                if res.face_landmarks is None or len(res.face_landmarks) == 0:
+                    mouth_frames.append(np.zeros([self.image_crop_size, self.image_crop_size], dtype=np.uint8))
+                    continue
+
+                landmarks = res.face_landmarks[0]
+                top = landmarks[top_idx]
+                left = landmarks[left_idx]
+                right = landmarks[right_idx]
+                bottom = landmarks[bottom_idx]
+
+                H, W = frame.shape[:2]
+                xmax = max(top.x, left.x, right.x, bottom.x)
+                ymax = max(top.y, left.y, right.y, bottom.y)
+                xmin = min(top.x, left.x, right.x, bottom.x)
+                ymin = min(top.y, left.y, right.y, bottom.y)
+
+                patch_size = max((xmax - xmin) * W, (ymax - ymin) * H)  # To extract square region
+                half = int(patch_size / 2)
+                y_center = int(ymin * H) + int(((ymax - ymin) / 2) * H)
+                x_center = int(xmin * W) + int(((xmax - xmin) / 2) * W)
+                lip = frame[
+                    y_center - half : y_center + half,
+                    x_center - half : x_center + half,
+                    :,
+                ]
+                try:
+                    lip = cv2.resize(lip, (self.image_crop_size, self.image_crop_size))
+                except Exception:
+                    lip = np.zeros([self.image_crop_size, self.image_crop_size, 3], dtype=np.uint8)
+                mouth_frames.append(cv2.cvtColor(lip, cv2.COLOR_RGB2GRAY))
+        return np.stack(mouth_frames, axis=0)
+
+    def _extract_mouth_legacy(self, frames: NDArray[np.uint8]) -> NDArray[np.uint8]:
         mouth_frames = []
         top_idx, right_idx, bottom_idx, left_idx = self.landmark_indices
         with mp_face_mesh.FaceMesh(
