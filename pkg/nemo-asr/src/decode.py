@@ -35,13 +35,18 @@ def decode_hypothesis(model, hyp):
     Returns:
         TranscribeResult
     """
-    # NeMo prepends a blank token to y_sequence with ALSD.
-    # Trim that artifact token.
+    # NeMo RNNT decoder prepends a leading sentinel token (typically the
+    # BOS/EOS id used as Prediction Network's initial input, NOT the RNNT
+    # blank id). Trim it from both y_sequence and timestamp; otherwise
+    # zip causes a 1-step misalignment that pulls real tokens' emit-step
+    # to the sentinel's step (often 0), pushing their times to chunk
+    # origin — observed as "phantom prefix" segments.
     y_sequence = hyp.y_sequence.tolist()[1:]
+    timestamps = (hyp.timestamp.tolist() if hasattr(hyp.timestamp, "tolist") else list(hyp.timestamp))[1:]
     text = model.tokenizer.ids_to_text(y_sequence)
 
     subwords = []
-    for idx, (token_id, step) in enumerate(zip(y_sequence, hyp.timestamp)):
+    for idx, (token_id, step) in enumerate(zip(y_sequence, timestamps)):
         subwords.append(Subword(
             token_id=token_id,
             token=model.tokenizer.ids_to_text([token_id]),
