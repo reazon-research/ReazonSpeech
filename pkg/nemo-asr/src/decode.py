@@ -10,6 +10,32 @@ TOKEN_EOS = {'。', '?', '!'}
 TOKEN_COMMA = {'、', ','}
 TOKEN_PUNC = TOKEN_EOS | TOKEN_COMMA
 
+
+
+_SP_LEADING_WHITESPACE = "▁"
+
+
+def _starts_with_sp_whitespace(model, token_id):
+    """Return True iff token_id maps to the SentencePiece leading-whitespace
+    meta piece (▁, U+2581).
+
+    NeMo's RNN-T beam search (ALSD/MAES/...) sometimes emits this meta piece
+    at hyp.y_sequence[0] with its own entry in hyp.timestamp[0]. The piece is
+    later dropped (it stringifies to ""), but if we do not also drop
+    timestamp[0] the subsequent zip(y_sequence, timestamp) is shifted by one
+    step — the first real token inherits step 0 and gets placed at the chunk
+    origin, producing phantom prefix segments. The trim must therefore be
+    conditional: when the hypothesis does not start with ▁ both arrays must
+    be kept intact.
+    """
+    try:
+        # SentencePiece leading-whitespace meta piece (U+2581 "▁")
+        return model.tokenizer.tokenizer.id_to_piece(int(token_id)) == "▁" 
+    except Exception:
+        # token_id might be out of SentencePiece vocab range (e.g., RNNT blank idx)
+        return False
+
+
 def find_end_of_segment(subwords, start):
     """Heuristics to identify speech boundaries"""
     length = len(subwords)
@@ -25,6 +51,7 @@ def find_end_of_segment(subwords, start):
                         break
     return idx
 
+
 def decode_hypothesis(model, hyp):
     """Decode ALSD beam search info into transcribe result
 
@@ -35,14 +62,15 @@ def decode_hypothesis(model, hyp):
     Returns:
         TranscribeResult
     """
-    # NeMo RNNT decoder prepends a leading sentinel token (typically the
-    # BOS/EOS id used as Prediction Network's initial input, NOT the RNNT
-    # blank id). Trim it from both y_sequence and timestamp; otherwise
-    # zip causes a 1-step misalignment that pulls real tokens' emit-step
-    # to the sentinel's step (often 0), pushing their times to chunk
-    # origin — observed as "phantom prefix" segments.
-    y_sequence = hyp.y_sequence.tolist()[1:]
-    timestamps = (hyp.timestamp.tolist() if hasattr(hyp.timestamp, "tolist") else list(hyp.timestamp))[1:]
+    # If the hypothesis starts with the SentencePiece leading-whitespace meta
+    # piece (▁), trim it from both y_sequence and timestamp to keep zip
+    # aligned. See _starts_with_sp_whitespace() for the rationale.
+    y_sequence = hyp.y_sequence.tolist()
+    timestamps = hyp.timestamp.tolist() if hasattr(hyp.timestamp, "tolist") else list(hyp.timestamp)
+    if y_sequence and _starts_with_sp_whitespace(model, y_sequence[0]):
+        y_sequence = y_sequence[1:]
+        timestamps = timestamps[1:]
+
     text = model.tokenizer.ids_to_text(y_sequence)
 
     subwords = []
