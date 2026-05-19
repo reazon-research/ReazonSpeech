@@ -10,11 +10,6 @@ TOKEN_EOS = {'。', '?', '!'}
 TOKEN_COMMA = {'、', ','}
 TOKEN_PUNC = TOKEN_EOS | TOKEN_COMMA
 
-
-
-_SP_LEADING_WHITESPACE = "▁"
-
-
 def _starts_with_sp_whitespace(model, token_id):
     """Return True iff token_id maps to the SentencePiece leading-whitespace
     meta piece (▁, U+2581).
@@ -30,7 +25,7 @@ def _starts_with_sp_whitespace(model, token_id):
     """
     try:
         # SentencePiece leading-whitespace meta piece (U+2581 "▁")
-        return model.tokenizer.tokenizer.id_to_piece(int(token_id)) == "▁" 
+        return model.tokenizer.tokenizer.id_to_piece(int(token_id)) == "▁"
     except Exception:
         # token_id might be out of SentencePiece vocab range (e.g., RNNT blank idx)
         return False
