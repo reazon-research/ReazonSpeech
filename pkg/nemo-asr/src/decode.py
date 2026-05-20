@@ -10,6 +10,13 @@ TOKEN_EOS = {'。', '?', '!'}
 TOKEN_COMMA = {'、', ','}
 TOKEN_PUNC = TOKEN_EOS | TOKEN_COMMA
 
+
+def _starts_with_sp_whitespace(model, token_id) -> bool:
+    """True if token_id is SentencePiece whitespace marker ▁."""
+    sep_id = getattr(model.tokenizer, "spm_separator_id", None)
+    return sep_id is not None and int(token_id) == int(sep_id)
+
+
 def find_end_of_segment(subwords, start):
     """Heuristics to identify speech boundaries"""
     length = len(subwords)
@@ -25,6 +32,7 @@ def find_end_of_segment(subwords, start):
                         break
     return idx
 
+
 def decode_hypothesis(model, hyp):
     """Decode ALSD beam search info into transcribe result
 
@@ -35,21 +43,24 @@ def decode_hypothesis(model, hyp):
     Returns:
         TranscribeResult
     """
-    # NeMo prepends a blank token to y_sequence with ALSD.
-    # Trim that artifact token.
-    y_sequence = hyp.y_sequence.tolist()[1:]
+    # Drop a leading SentencePiece whitespace marker (▁) and its timestamp to keep token↔timestamp alignment.
+    y_sequence = hyp.y_sequence.tolist()
+    timestamps = hyp.timestamp.tolist() if hasattr(hyp.timestamp, "tolist") else list(hyp.timestamp)
+    if y_sequence and _starts_with_sp_whitespace(model, y_sequence[0]):
+        y_sequence = y_sequence[1:]
+        timestamps = timestamps[1:]
+
     text = model.tokenizer.ids_to_text(y_sequence)
 
     subwords = []
-    for idx, (token_id, step) in enumerate(zip(y_sequence, hyp.timestamp)):
+    for idx, (token_id, step) in enumerate(zip(y_sequence, timestamps)):
         subwords.append(Subword(
             token_id=token_id,
             token=model.tokenizer.ids_to_text([token_id]),
             seconds=max(SECONDS_PER_STEP * (step - idx - 1) - PAD_SECONDS, 0)
         ))
 
-    # In SentncePiece, whitespace is considered as a normal token and
-    # represented with a meta character (U+2581). Trim them.
+    # SentencePiece may emit whitespace as a separate token (▁). Trim empty/whitespace-only tokens.
     subwords = [x for x in subwords if x.token]
 
     segments = []
