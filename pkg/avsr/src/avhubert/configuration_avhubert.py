@@ -51,8 +51,10 @@ class AVHubertConfig(PretrainedConfig):
         ctc_zero_infinity: bool = False,
         ctc_loss_weight: float = 0.3,
         special_ids: list[int] | None = None,
+        use_cache: bool = True,
         **kwargs,
     ):
+        kwargs.setdefault("is_encoder_decoder", True)
         super().__init__(**kwargs)
         self.label_rate = label_rate
         self.encoder_layers = encoder_layers
@@ -99,6 +101,7 @@ class AVHubertConfig(PretrainedConfig):
         self.ctc_zero_infinity = ctc_zero_infinity
         self.ctc_loss_weight = ctc_loss_weight
         self.special_ids = special_ids
+        self.use_cache = use_cache
 
     @property
     def encoder_config(self) -> HubertConfig:
