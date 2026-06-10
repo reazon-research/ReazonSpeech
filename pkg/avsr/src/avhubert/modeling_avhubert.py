@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from transformers import PreTrainedModel
-from transformers.cache_utils import StaticCache
+from transformers.cache_utils import Cache, StaticCache
 from transformers.generation import GenerationMixin
 from transformers.generation.utils import GenerationConfig, GenerationMode
 from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
@@ -31,7 +31,7 @@ NEED_SETUP_CACHE_CLASSES_MAPPING = {
 
 
 @dataclass
-class AVHubertOutput:
+class AVHubertOutput(ModelOutput):
     last_hidden_state: Optional[torch.Tensor] = None
     hidden_states: Optional[torch.Tensor] = None
     attentions: Optional[torch.Tensor] = None
@@ -70,6 +70,7 @@ class AVHubertPreTrainedModel(PreTrainedModel):
 
     config_class = AVHubertConfig
     base_model_prefix = "avhubert"
+    main_input_name = "input_values"
     supports_gradient_checkpointing = False
 
     def _init_weights(self, module):
@@ -214,6 +215,8 @@ class AVHubertModel(AVHubertPreTrainedModel):
 
 
 class AVHubertForConditionalGeneration(AVHubertPreTrainedModel, GenerationMixin):
+    _supports_cache_class = True
+
     def __init__(
         self,
         config: AVHubertConfig,
@@ -282,27 +285,57 @@ class AVHubertForConditionalGeneration(AVHubertPreTrainedModel, GenerationMixin)
         padding_mask: Optional[torch.Tensor] = None,
         decoder_input_ids: Optional[torch.Tensor] = None,
         decoder_attention_mask: Optional[torch.Tensor] = None,
+        encoder_outputs: Optional[ModelOutput] = None,
+        past_key_values: Optional[Cache] = None,
         labels: Optional[torch.Tensor] = None,
+        use_cache: Optional[bool] = None,
         output_attentions: bool = False,
         output_hidden_states: bool = False,
+        cache_position: Optional[torch.Tensor] = None,
         return_dict: bool = True,
     ) -> ModelOutput:
-        encoder_outs = self.avhubert(
-            input_values=input_values,
-            pixel_values=pixel_values,
-            padding_mask=padding_mask,
-            output_attentions=output_attentions,
-            output_hidden_states=output_hidden_states,
-        )
+        if encoder_outputs is None:
+            encoder_outs = self.avhubert(
+                input_values=input_values,
+                pixel_values=pixel_values,
+                padding_mask=padding_mask,
+                output_attentions=output_attentions,
+                output_hidden_states=output_hidden_states,
+            )
+        elif isinstance(encoder_outputs, ModelOutput):
+            encoder_outs = encoder_outputs
+        else:
+            encoder_outs = AVHubertOutput(
+                last_hidden_state=encoder_outputs[0],
+                hidden_states=encoder_outputs[1] if len(encoder_outputs) > 1 else None,
+                attentions=encoder_outputs[2] if len(encoder_outputs) > 2 else None,
+            )
+
+        use_cache = use_cache if use_cache is not None else self.config.use_cache
+        if use_cache is None:
+            use_cache = True
+        if labels is not None:
+            use_cache = False
 
         embed_tokens = self.embed_tokens(decoder_input_ids)
+        if padding_mask is None:
+            encoder_attention_mask = torch.ones(
+                encoder_outs.last_hidden_state.shape[:2],
+                dtype=torch.bool,
+                device=encoder_outs.last_hidden_state.device,
+            )
+        else:
+            encoder_attention_mask = ~padding_mask.bool()
         hidden_states = self.decoder(
             inputs_embeds=embed_tokens,
             attention_mask=decoder_attention_mask,
             encoder_hidden_states=encoder_outs.last_hidden_state,
-            encoder_attention_mask=~padding_mask.bool(),
+            encoder_attention_mask=encoder_attention_mask,
+            past_key_values=past_key_values,
+            use_cache=use_cache,
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
+            cache_position=cache_position,
         )
 
         if self.config.share_decoder_input_output_embed:
@@ -318,10 +351,10 @@ class AVHubertForConditionalGeneration(AVHubertPreTrainedModel, GenerationMixin)
         return Seq2SeqLMOutput(
             loss=loss,
             logits=logits,
-            past_key_values=None,
+            past_key_values=hidden_states.past_key_values,
             decoder_hidden_states=hidden_states.hidden_states,
             decoder_attentions=hidden_states.attentions,
-            cross_attentions=None,
+            cross_attentions=hidden_states.cross_attentions,
             encoder_last_hidden_state=encoder_outs.last_hidden_state,
             encoder_hidden_states=encoder_outs.hidden_states,
             encoder_attentions=encoder_outs.attentions,
@@ -372,20 +405,13 @@ class AVHubertForConditionalGeneration(AVHubertPreTrainedModel, GenerationMixin)
     def prepare_inputs_for_generation(
         self,
         input_ids: torch.Tensor = None,
-        input_values: Optional[torch.Tensor] = None,
-        pixel_values: Optional[torch.Tensor] = None,
-        decoder_input_ids: Optional[torch.Tensor] = None,
-        decoder_attention_mask: Optional[torch.Tensor] = None,
-        padding_mask: Optional[torch.Tensor] = None,
+        past_key_values: Optional[Cache] = None,
+        cache_position: Optional[torch.Tensor] = None,
         **kwargs,
     ):
-        if decoder_input_ids is None:
-            decoder_input_ids = input_ids
-            decoder_attention_mask = torch.ones_like(input_ids)
-        return {
-            "input_values": input_values,
-            "pixel_values": pixel_values,
-            "decoder_input_ids": decoder_input_ids,
-            "decoder_attention_mask": decoder_attention_mask,
-            "padding_mask": padding_mask,
-        }
+        return super().prepare_inputs_for_generation(
+            input_ids,
+            past_key_values=past_key_values,
+            cache_position=cache_position,
+            **kwargs,
+        )
